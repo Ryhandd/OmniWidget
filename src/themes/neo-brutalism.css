@@ -1,0 +1,9 @@
+:root[data-theme='neo-brutalism'] {
+  --bg: #fff7e0; --surface: #ffffff; --surface-2: #ffeec2; --text: #111111; --text-dim: #4a4a4a;
+  --accent: #ff5c8a; --accent-text: #111111; --accent-2: #3dd6a5; --danger: #d00032;
+  --border-w: 3px; --border-c: #111111; --radius: 0px;
+  --shadow: 4px 4px 0 #111111;
+  --font-ui: 'Space Grotesk', system-ui, sans-serif;
+  --motion: 80ms steps(2);
+  --accent-soft: #ffd6e3; --pill-radius: 0px; --island-radius: 0px;
+}

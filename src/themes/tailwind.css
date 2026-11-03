@@ -1,0 +1,3 @@
+/* Hanya base (variabel --tw-*) dan utilities; tanpa preflight & components. Di-purge saat build. */
+@tailwind base;
+@tailwind utilities;

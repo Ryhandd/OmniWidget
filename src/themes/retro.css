@@ -1,0 +1,9 @@
+:root[data-theme='retro'] {
+  --bg: #1b1a17; --surface: #262420; --surface-2: #33302a; --text: #f2d98d; --text-dim: #b9a46a;
+  --accent: #ff7a00; --accent-text: #1b1a17; --accent-2: #7bdc65; --danger: #ff5a4d;
+  --border-w: 2px; --border-c: #f2d98d; --radius: 2px;
+  --shadow: 0 0 0 2px #000, 3px 3px 0 #000;
+  --font-ui: 'VT323', ui-monospace, 'Courier New', monospace;
+  --motion: 120ms steps(4);
+  --accent-soft: rgba(255, 122, 0, 0.18); --pill-radius: 2px; --island-radius: 2px;
+}

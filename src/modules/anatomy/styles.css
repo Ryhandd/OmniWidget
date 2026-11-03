@@ -1,0 +1,165 @@
+/* Warna UI memakai design token (var(--…)) supaya ikut berganti tema. Satu-satunya warna literal adalah
+   enam aksen blok di bawah (identitas blok, sama di semua tema); turunan latar/teksnya dicampur dengan token tema. */
+
+.anat { display: flex; flex-direction: column; gap: 14px; padding: 12px 12px 16px; min-width: 0; }
+.anat__panel, .anat__results { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+
+/* Dua kolom bila jendela cukup lebar (jendela expanded standar 420 px memakai satu kolom bertumpuk). */
+@media (min-width: 760px) {
+  .anat { display: grid; grid-template-columns: minmax(280px, 340px) minmax(0, 1fr); align-items: start; gap: 16px; }
+  .anat__panel { position: sticky; top: 12px; }
+}
+
+/* ---------- Aksen per blok ---------- */
+[data-seg='role'] { --c: #3b82f6; }
+[data-seg='task'] { --c: #f59e0b; }
+[data-seg='context'] { --c: #10b981; }
+[data-seg='reasoning'] { --c: #f43f5e; }
+[data-seg='stop_conditions'] { --c: #ec4899; }
+[data-seg='output'] { --c: #a855f7; }
+
+/* ---------- Kolom kiri ---------- */
+.anat__sect { display: flex; flex-direction: column; gap: 6px; }
+.anat__row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.anat__row > .anat__title { flex: 1; min-width: 0; }
+.anat__title { font-weight: 700; }
+.anat__note { margin: 0; font-size: 12px; color: var(--text-dim); }
+.anat__note.err { color: var(--danger); }
+
+/* base.css mematikan seleksi teks global; kolom ketik dan hasil harus bisa diseleksi. */
+.anat__idea, .anat__text, .anat__sbin {
+  font: inherit; line-height: 1.45; resize: vertical;
+  user-select: text; -webkit-user-select: text;
+}
+.anat__idea { min-height: 84px; max-height: 240px; }
+.anat__sbin { min-height: 44px; max-height: 160px; }
+.anat__idea::placeholder, .anat__text::placeholder, .anat__sbin::placeholder { color: var(--text-dim); opacity: 0.7; }
+.anat__idea:disabled, .anat__text:disabled, .anat__sbin:disabled { opacity: 0.6; }
+
+.anat__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.anat__chip {
+  padding: 4px 9px; background: var(--surface); color: var(--text);
+  border: var(--border-w) solid var(--border-c); border-radius: 99px; font-size: 12px;
+  transition: background var(--motion), color var(--motion);
+}
+.anat__chip:hover:not(:disabled) { background: var(--surface-2); }
+.anat__chip:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.anat__selects { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.anat__lbl { display: flex; flex-direction: column; gap: 3px; min-width: 0; font-size: 12px; color: var(--text-dim); }
+.anat__lbl .field { color: var(--text); }
+@media (max-width: 360px) { .anat__selects { grid-template-columns: 1fr; } }
+
+.anat__go { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.anat__sect > .anat__go { width: 100%; }
+
+.anat__spin {
+  width: 12px; height: 12px; border-radius: 50%;
+  border: 2px solid currentColor; border-right-color: transparent;
+  animation: anat-spin 0.7s linear infinite;
+}
+@keyframes anat-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .anat__spin { animation-duration: 2.4s; } }
+
+.anat__guide {
+  display: flex; flex-direction: column; gap: 6px; padding: 8px 10px;
+  background: var(--surface); border: var(--border-w) solid var(--border-c); border-radius: calc(var(--radius) / 2);
+}
+.anat__legend { display: flex; flex-wrap: wrap; gap: 6px; }
+.anat__tag {
+  display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; font-size: 12px;
+  border: var(--border-w) solid var(--c); border-radius: 99px; color: var(--text);
+}
+.anat__tag .anat__dot { width: 7px; height: 7px; }
+@supports (background: color-mix(in srgb, red 10%, blue)) {
+  .anat__tag { background: color-mix(in srgb, var(--c) 14%, transparent); }
+}
+
+/* ---------- Kolom kanan ---------- */
+/* Bilah hasil menempel di atas area gulir supaya format & "Salin Semua" selalu terjangkau. */
+.anat__bar {
+  position: sticky; top: 0; z-index: 2;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  margin: 0 -12px; padding: 8px 12px;
+  background: var(--bg); border-bottom: var(--border-w) solid var(--border-c);
+}
+.anat__save { flex: 1; min-width: 0; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (min-width: 760px) { .anat__bar { margin: 0; padding: 8px 0; top: -12px; } }
+
+.anat__fmt { display: inline-flex; border: var(--border-w) solid var(--border-c); border-radius: calc(var(--radius) / 2); overflow: hidden; }
+.anat__fmt-btn {
+  padding: 5px 9px; background: var(--surface); color: var(--text); border: 0;
+  transition: background var(--motion), color var(--motion);
+}
+.anat__fmt-btn + .anat__fmt-btn { border-left: var(--border-w) solid var(--border-c); }
+.anat__fmt-btn[aria-checked='true'] { background: var(--accent); color: var(--accent-text); font-weight: 700; }
+.anat__fmt-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ---------- Kartu blok ---------- */
+.anat__card {
+  display: flex; flex-direction: column; gap: 4px; padding: 0 0 8px; min-width: 0; overflow: hidden;
+  background: var(--surface);
+  border: var(--border-w) solid var(--border-c);
+  border-left: calc(var(--border-w) + 3px) solid var(--c);
+  border-radius: calc(var(--radius) / 2);
+}
+.anat__card-head {
+  display: flex; align-items: center; gap: 8px; min-width: 0; padding: 6px 8px;
+  background: var(--surface-2);
+}
+@supports (background: color-mix(in srgb, red 10%, blue)) {
+  .anat__card-head { background: color-mix(in srgb, var(--c) 14%, var(--surface)); }
+}
+.anat__dot { flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--c); display: inline-block; }
+.anat__name { font-weight: 700; color: var(--text); white-space: nowrap; }
+@supports (color: color-mix(in srgb, red 10%, blue)) {
+  .anat__name { color: color-mix(in srgb, var(--c) 70%, var(--text)); }
+}
+.anat__sub { flex: 1; min-width: 0; font-size: 12px; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.anat__help { margin: 0; padding: 0 9px; font-size: 12px; color: var(--text-dim); }
+.anat__card .anat__text {
+  width: calc(100% - 16px); margin: 0 8px; min-height: 44px; max-height: 420px;
+  resize: none; overflow-y: auto; /* tinggi diatur otomatis oleh SegmentField */
+}
+.anat__card .anat__text:focus-visible { outline-color: var(--c); }
+.anat__count { margin: 0 9px; font-size: 12px; text-align: right; }
+
+.anat__mini {
+  flex: none; padding: 2px 8px; font-size: 12px; background: var(--surface); color: var(--text);
+  border: var(--border-w) solid var(--border-c); border-radius: calc(var(--radius) / 2);
+  transition: background var(--motion);
+}
+.anat__mini:hover:not(:disabled) { background: var(--surface-2); }
+.anat__mini:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ---------- Pratinjau, sandbox, hasil ---------- */
+.anat__preview {
+  background: var(--surface); border: var(--border-w) solid var(--border-c);
+  border-radius: calc(var(--radius) / 2); padding: 6px 9px;
+}
+.anat__preview > summary { cursor: pointer; font-weight: 700; }
+.anat__empty { margin: 8px 0 2px; }
+.anat__pre {
+  margin: 8px 0 2px; max-height: 220px; overflow: auto;
+  white-space: pre-wrap; word-break: break-word; font: 12px/1.5 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  user-select: text; -webkit-user-select: text;
+}
+
+.anat__sandbox {
+  display: flex; flex-direction: column; gap: 8px; padding: 10px;
+  background: var(--surface); border: var(--border-w) dashed var(--border-c); border-radius: calc(var(--radius) / 2);
+}
+.anat__result { display: flex; flex-direction: column; gap: 4px; }
+.anat__result .anat__pre { margin: 0; max-height: 300px; padding: 8px; background: var(--bg); border-radius: calc(var(--radius) / 2); }
+
+/* ---------- Toast ---------- */
+.anat__toast {
+  position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 20;
+  max-width: calc(100% - 24px); padding: 7px 14px; pointer-events: none;
+  background: var(--accent-2); color: var(--accent-text);
+  border: var(--border-w) solid var(--border-c); border-radius: 99px; box-shadow: var(--shadow);
+  font-weight: 600; text-align: center;
+  animation: anat-pop var(--motion);
+}
+.anat__toast--err { background: var(--danger); color: var(--accent-text); }
+@keyframes anat-pop { from { opacity: 0; transform: translateX(-50%) translateY(6px); } }

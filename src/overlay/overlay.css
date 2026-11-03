@@ -1,0 +1,45 @@
+html, body, #app { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
+body { font: 13px/1.4 'Inter', 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif; color: #f3f4f6; user-select: none; -webkit-user-select: none; }
+button { font: inherit; cursor: pointer; }
+
+/* Sedikit isi (bukan 0) agar jendela transparan tetap menerima klik di semua OS. */
+.ov { position: fixed; inset: 0; cursor: crosshair; background: rgba(0, 0, 0, 0.012); }
+.ov--ruler { background: rgba(10, 12, 20, 0.06); }
+.ov--qr { background: rgba(0, 0, 0, 0.38); }
+.ov--qr.is-sel { background: rgba(0, 0, 0, 0.012); }
+
+.ov__hint, .ov__bar {
+  position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 5;
+  display: flex; align-items: center; gap: 6px; padding: 7px 14px; white-space: nowrap;
+  background: rgba(11, 12, 15, 0.92); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 99px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); font-weight: 600; cursor: default;
+}
+.ov__bar { padding: 5px 6px 5px 6px; }
+.ov__bar button { padding: 5px 11px; border: 0; border-radius: 99px; background: transparent; color: #c9cdd6; font-weight: 600; }
+.ov__bar button:hover:not(:disabled) { background: #1f2229; color: #fff; }
+.ov__bar button[aria-pressed='true'] { background: #8b9dff; color: #0b0c0f; }
+.ov__bar button:disabled { opacity: 0.4; cursor: default; }
+.ov__val { padding: 0 8px; font-variant-numeric: tabular-nums; min-width: 120px; text-align: center; }
+.ov__dim { color: #8b919e; font-size: 12px; padding-right: 6px; }
+
+.loupe {
+  position: fixed; z-index: 4; width: 150px; pointer-events: none;
+  border-radius: 14px; overflow: hidden; border: 2px solid #fff; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); background: #000;
+}
+.loupe canvas { display: block; width: 150px; height: 150px; image-rendering: pixelated; }
+.loupe__val { padding: 6px 8px; text-align: center; font: 700 12px ui-monospace, 'Cascadia Mono', monospace; }
+
+.guide { position: fixed; z-index: 1; pointer-events: none; background: rgba(139, 157, 255, 0.55); }
+.guide--h { left: 0; right: 0; height: 1px; }
+.guide--v { top: 0; bottom: 0; width: 1px; }
+.rbox { position: fixed; z-index: 2; pointer-events: none; outline: 1px solid #8b9dff; background: rgba(139, 157, 255, 0.12); }
+.rtag, .rline text {
+  font: 700 11px ui-monospace, monospace; fill: #fff;
+}
+.rtag { position: absolute; right: 0; bottom: -24px; padding: 3px 7px; border-radius: 6px; background: #8b9dff; color: #0b0c0f; white-space: nowrap; }
+.rline { position: fixed; inset: 0; z-index: 2; pointer-events: none; }
+.rline line { stroke: #8b9dff; stroke-width: 1.5; }
+.rline circle { fill: #8b9dff; }
+.rline text { paint-order: stroke; stroke: #0b0c0f; stroke-width: 3px; }
+
+.qbox { position: fixed; z-index: 2; pointer-events: none; outline: 2px dashed #4ade80; box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.38); }

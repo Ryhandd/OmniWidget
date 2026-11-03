@@ -1,0 +1,8 @@
+:root[data-theme='glass-dark'] {
+  --bg: rgba(20, 22, 28, 0.88); --surface: rgba(255, 255, 255, 0.06); --surface-2: rgba(255, 255, 255, 0.1);
+  --text: #e8eaf0; --text-dim: #9aa0b0; --accent: #6ea8ff; --accent-text: #0b1220; --accent-2: #7be0b8; --danger: #ff7a7a;
+  --border-w: 1px; --border-c: rgba(255, 255, 255, 0.14); --radius: 14px;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --font-ui: system-ui, sans-serif; --motion: 160ms ease-out;
+  --accent-soft: rgba(110, 168, 255, 0.16); --pill-radius: 18px; --island-radius: 24px;
+}

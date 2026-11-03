@@ -1,0 +1,36 @@
+.conv { padding: 14px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.conv__drop {
+  padding: 16px 12px; text-align: center; color: var(--text-dim);
+  background: var(--surface); border: var(--border-w) dashed var(--border-c); border-radius: var(--radius);
+  transition: background var(--motion), border-color var(--motion);
+}
+.conv__drop[data-over='true'] { background: var(--surface-2); border-color: var(--accent); color: var(--text); }
+.conv__file { color: var(--text); word-break: break-all; }
+.conv__badge {
+  margin-left: 8px; padding: 1px 6px; font-size: 11px; font-weight: 700; vertical-align: middle;
+  color: var(--accent-text); background: var(--accent); border-radius: calc(var(--radius) / 3);
+}
+.conv__path { font-size: 12px; margin-top: 2px; }
+.conv__drop-actions { margin-top: 8px; }
+
+.conv__targets { display: flex; flex-direction: column; gap: 8px; }
+.conv__row { display: flex; gap: 8px; align-items: center; min-width: 0; }
+.conv__row > select { flex: 1; min-width: 0; }
+.conv__opt > span { flex: none; }
+.conv__hint { font-size: 12px; }
+
+.conv__out { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 12px; }
+.conv__out-label { flex: none; }
+.conv__out-path { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.conv__status { display: flex; flex-direction: column; gap: 6px; font-size: 12px; word-break: break-word; }
+.conv__ok { color: var(--accent-2); }
+.conv__result { color: var(--text); word-break: break-all; user-select: text; -webkit-user-select: text; }
+
+.conv__drop[data-busy='true'] { opacity: 0.8; cursor: progress; }
+.conv__hint { font-size: 12px; margin-top: 2px; }
+.conv__notice {
+  padding: 6px 10px; font-size: 12px; word-break: break-word;
+  background: var(--surface); border: var(--border-w) solid var(--border-c); border-radius: calc(var(--radius) / 2);
+}
+.conv__notice--err { color: var(--danger); border-color: var(--danger); }

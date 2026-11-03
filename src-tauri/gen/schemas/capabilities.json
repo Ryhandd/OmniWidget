@@ -1,0 +1,1 @@
+{"default":{"identifier":"default","description":"Izin dasar jendela utama OmniWidget","local":true,"windows":["main","overlay"],"permissions":["core:default","core:window:allow-start-dragging","dialog:default","notification:default"]}}
