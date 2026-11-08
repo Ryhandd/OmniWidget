@@ -561,6 +561,64 @@ fn write_docx(blocks: &[Block], output: &Path) -> Result<(), ConvError> {
     Ok(())
 }
 
+/// Menulis DOCX dari teks yang diekstrak per halaman PDF.
+///
+/// Satu paragraf = teks di antara baris kosong; baris yang terlipat di dalam satu blok
+/// disatukan dengan spasi agar hasilnya mengalir sebagai paragraf, bukan potongan baris.
+/// Setiap halaman PDF dimulai di halaman baru.
+pub fn write_text_docx(pages: &[String], output: &Path) -> Result<(), ConvError> {
+    use docx_rs::{Docx, Paragraph, Run};
+
+    let mut docx = Docx::new();
+    for (page_index, page) in pages.iter().enumerate() {
+        let paragraphs = pdf_text_paragraphs(page);
+        if paragraphs.is_empty() {
+            continue;
+        }
+        for (i, text) in paragraphs.iter().enumerate() {
+            docx = docx.add_paragraph(
+                Paragraph::new()
+                    .page_break_before(page_index > 0 && i == 0)
+                    .add_run(Run::new().add_text(text.as_str())),
+            );
+        }
+    }
+
+    let file = std::fs::File::create(output)?;
+    docx.build()
+        .pack(file)
+        .map_err(|e| ConvError::Doc(format!("Gagal menulis DOCX: {e}")))?;
+    Ok(())
+}
+
+/// Teks hasil ekstraksi Pdfium -> daftar paragraf yang enak dibaca.
+fn pdf_text_paragraphs(page: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut current = String::new();
+    for line in page.lines() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            if !current.is_empty() {
+                out.push(std::mem::take(&mut current));
+            }
+            continue;
+        }
+        if !current.is_empty() {
+            // Tanda hubung di akhir baris berarti kata terpotong: sambung tanpa spasi.
+            let tight = current.ends_with('-')
+                || trimmed.starts_with(|c: char| matches!(c, ',' | '.' | ';' | ':' | ')' | ']' | '}' | '!' | '?'));
+            if !tight {
+                current.push(' ');
+            }
+        }
+        current.push_str(trimmed);
+    }
+    if !current.is_empty() {
+        out.push(current);
+    }
+    out
+}
+
 // ---------- Tulis PDF ----------
 //
 // `genpdf` menangani pembungkusan baris, spasi, dan paginasi A4. Yang dirender hanya teks
@@ -1068,5 +1126,49 @@ mod tests {
 
         let bytes = std::fs::read(&output).unwrap();
         assert!(bytes.starts_with(b"%PDF"), "header bukan PDF");
+    }
+
+    #[test]
+    fn pdf_ke_docx_mempertahankan_teks() {
+        let dir = tempfile::tempdir().unwrap();
+        let input = dir.path().join("sumber.md");
+        std::fs::write(&input, "# Judul\n\nParagraf uji konversi.\n").unwrap();
+
+        let cancel: CancelToken = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let pdf = dir.path().join("antara.pdf");
+        convert(&input, &pdf, Format::Md, Format::Pdf, &cancel, &|_| {}).unwrap();
+
+        let lib_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources");
+        let lib = if cfg!(windows) {
+            lib_dir.join("pdfium.dll")
+        } else if cfg!(target_os = "macos") {
+            lib_dir.join("libpdfium.dylib")
+        } else {
+            lib_dir.join("libpdfium.so")
+        };
+        if !lib.is_file() {
+            eprintln!("dilewati: {} tidak ada", lib.display());
+            return;
+        }
+
+        let docx = dir.path().join("hasil.docx");
+        crate::plugins::converter::pdf::convert(
+            &pdf,
+            &docx,
+            Format::Docx,
+            crate::plugins::converter::pdf::Pages::All,
+            &lib_dir,
+            &cancel,
+            &|_| {},
+        )
+        .expect("PDF ke DOCX");
+
+        let bytes = std::fs::read(&docx).unwrap();
+        assert_eq!(&bytes[..2], b"PK", "DOCX bukan arsip ZIP");
+
+        let blocks = read_docx(&docx).unwrap();
+        let text = blocks_to_text(&blocks);
+        assert!(text.contains("Judul"), "teks judul hilang: {text}");
+        assert!(text.contains("Paragraf uji"), "teks paragraf hilang: {text}");
     }
 }

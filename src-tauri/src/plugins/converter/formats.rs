@@ -56,6 +56,7 @@ pub fn routes() -> Vec<Route> {
     v.push(Route { from: Pdf, to: Png, engine: Engine::Pdfium });
     v.push(Route { from: Pdf, to: Jpg, engine: Engine::Pdfium });
     v.push(Route { from: Pdf, to: Txt, engine: Engine::Pdfium });
+    v.push(Route { from: Pdf, to: Docx, engine: Engine::Pdfium });
     v
 }
 
@@ -131,5 +132,10 @@ mod tests {
         assert_eq!(find(Format::Docx, Format::Pdf).map(|r| r.engine), Some(Engine::Doc));
         assert!(find(Format::Md, Format::Pdf).is_some());
         assert!(find(Format::Html, Format::Pdf).is_some());
+    }
+
+    #[test]
+    fn pdf_bisa_menjadi_docx() {
+        assert_eq!(find(Format::Pdf, Format::Docx).map(|r| r.engine), Some(Engine::Pdfium));
     }
 }
