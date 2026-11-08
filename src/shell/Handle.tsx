@@ -2,6 +2,7 @@ import type { Ref } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import { bridge } from '../core/bridge';
 import { useIndicators } from '../core/indicators';
+import { useNowPlaying } from '../core/nowplaying';
 
 const clock = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 const today = () => new Date().toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' });
@@ -35,11 +36,31 @@ type PillProps = {
 export function Pill({ live, measureRef, onChip }: PillProps) {
   const time = useClock(live);
   const items = useIndicators();
+  const s = useNowPlaying();
+  const snap = s.snap;
+  const now = snap?.available && snap.title ? snap : null;
 
   return (
     <div ref={measureRef} class="pill" data-tauri-drag-region onDblClick={snap} title={today()}>
-      <i class={`pill__dot${items.length ? ' is-live' : ''}`} data-tauri-drag-region aria-hidden="true" />
+      <i class={`pill__dot${items.length || now ? ' is-live' : ''}`} data-tauri-drag-region aria-hidden="true" />
       <span class="pill__time" data-tauri-drag-region>{time}</span>
+      {now && (
+        <button
+          type="button"
+          class="pill__now"
+          data-playing={now.playing ? '' : undefined}
+          title={`${now.title}${now.artist ? ` — ${now.artist}` : ''}`}
+          aria-label={`Sedang diputar: ${now.title}. Buka pemutar musik`}
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => { e.stopPropagation(); onChip('music'); }}
+        >
+          <span class="pill__cover" aria-hidden="true">
+            {s.art ? <img src={s.art} alt="" draggable={false} /> : '♪'}
+          </span>
+          <span class="pill__song">{now.title}</span>
+          <span class="pill__eq" aria-hidden="true"><i /><i /><i /><i /></span>
+        </button>
+      )}
       {items.map((i) => (
         <button
           key={i.id}

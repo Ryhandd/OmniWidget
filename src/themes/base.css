@@ -104,6 +104,93 @@ button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-
 .chip__label { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
 @keyframes chip-in { from { opacity: 0; transform: scale(0.6); } }
 
+/* ---------- Now-playing di pill ---------- */
+.pill__now {
+  display: flex; align-items: center; gap: 7px; min-width: 0; max-width: 210px; height: 26px;
+  padding: 0 7px 0 3px; border: 0; border-radius: 99px; background: transparent; color: var(--text);
+  cursor: pointer; animation: chip-in 260ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  transition: background var(--motion);
+}
+.pill__now:hover { background: var(--surface-2); }
+.pill__now:active { transform: scale(0.97); }
+.pill__cover {
+  display: grid; place-items: center; flex: none; width: 20px; height: 20px; overflow: hidden;
+  border-radius: 6px; background: var(--surface-2); color: var(--accent); font-size: 11px;
+}
+.pill__cover img { width: 100%; height: 100%; object-fit: cover; }
+.pill__song { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11.5px; font-weight: 600; }
+.pill__eq { display: flex; align-items: flex-end; gap: 2px; height: 11px; flex: none; }
+.pill__eq i {
+  width: 2px; height: 100%; border-radius: 1px; background: var(--accent-2);
+  transform-origin: bottom; animation: eq 900ms ease-in-out infinite;
+}
+.pill__eq i:nth-child(2) { animation-delay: 140ms; }
+.pill__eq i:nth-child(3) { animation-delay: 280ms; }
+.pill__eq i:nth-child(4) { animation-delay: 420ms; }
+.pill__now:not([data-playing]) .pill__eq i { animation-play-state: paused; transform: scaleY(0.3); opacity: 0.7; }
+@keyframes eq { 0%, 100% { transform: scaleY(0.3); } 50% { transform: scaleY(1); } }
+
+/* ---------- Mini player di panel ---------- */
+.mini {
+  position: relative; flex: none; margin: 0 10px 8px; padding: 7px 8px 10px;
+  display: flex; align-items: center; gap: 9px; min-width: 0;
+  background: var(--surface); border: var(--border-w) solid var(--border-c);
+  border-radius: calc(var(--radius) * 0.8); box-shadow: var(--shadow);
+  animation: view-in 180ms ease-out;
+}
+.mini__art {
+  flex: none; width: 34px; height: 34px; padding: 0; overflow: hidden; display: grid; place-items: center;
+  border: 0; border-radius: calc(var(--radius) * 0.45); background: var(--surface-2);
+  color: var(--accent); font-size: 15px; cursor: pointer;
+  transition: transform var(--motion);
+}
+.mini__art:hover { transform: scale(1.05); }
+.mini__art img { width: 100%; height: 100%; object-fit: cover; }
+.mini__meta {
+  flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; align-items: flex-start;
+  padding: 0; border: 0; background: transparent; color: var(--text); text-align: left; cursor: pointer;
+}
+.mini__title, .mini__sub { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mini__title { font-size: 12px; font-weight: 650; }
+.mini__sub { font-size: 10.5px; color: var(--text-dim); }
+.mini__dot { margin: 0 4px; font-style: normal; opacity: 0.6; }
+.mini__src { opacity: 0.8; }
+.mini__actions { flex: none; display: flex; align-items: center; gap: 1px; }
+.mini__btn {
+  position: relative; display: grid; place-items: center; width: 27px; height: 27px; padding: 0;
+  border: 0; border-radius: 99px; background: transparent; color: var(--text-dim);
+  transition: background var(--motion), color var(--motion), transform var(--motion);
+}
+.mini__btn:hover:not(:disabled) { background: var(--surface-2); color: var(--text); }
+.mini__btn:active:not(:disabled) { transform: scale(0.9); }
+.mini__btn:disabled { opacity: 0.32; cursor: not-allowed; }
+.mini__btn[data-on='true'] { background: var(--accent-soft); color: var(--accent); }
+.mini__btn--main { width: 31px; height: 31px; background: var(--accent); color: var(--accent-text); }
+.mini__btn--main:hover:not(:disabled) { background: var(--accent); color: var(--accent-text); filter: brightness(1.08); }
+.mini__btn svg { width: 15px; height: 15px; }
+.mini__btn--main svg { width: 16px; height: 16px; }
+.mini__vol {
+  position: absolute; right: 6px; bottom: calc(100% + 6px); z-index: 20;
+  display: flex; align-items: center; gap: 7px; padding: 8px 10px; min-width: 160px;
+  background: var(--surface); border: var(--border-w) solid var(--border-c);
+  border-radius: calc(var(--radius) * 0.6); box-shadow: var(--shadow);
+  animation: view-in 140ms ease-out;
+}
+.mini__volt { flex: none; width: 26px; font-size: 11px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+.mini__vol input { flex: 1; min-width: 0; accent-color: var(--accent); }
+.mini__bar {
+  position: absolute; left: 8px; right: 8px; bottom: 4px; height: 2px;
+  overflow: hidden; border-radius: 99px; background: var(--surface-2);
+}
+.mini__bar > i { display: block; height: 100%; background: var(--accent-2); border-radius: inherit; transition: width 420ms linear; }
+.mini:not([data-playing]) .mini__bar > i { background: var(--text-dim); }
+
+@media (prefers-reduced-motion: reduce) {
+  .pill__now, .mini, .mini__art, .mini__btn { transition: none; animation: none; }
+  .pill__eq i { animation: none; transform: scaleY(0.55); }
+  .mini__bar > i { transition: none; }
+}
+
 /* ---------- Lapisan panel ---------- */
 .island__panel {
   position: absolute; inset: 0; min-height: 0;

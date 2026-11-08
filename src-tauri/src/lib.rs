@@ -61,6 +61,8 @@ pub fn run() {
             crate::plugins::clipboard::setup(app.handle())?;
             crate::plugins::converter::setup(app.handle());
             crate::plugins::spotify::setup(app.handle())?;
+            // Now-playing Spotify Free lewat Windows SMTC (tanpa Premium).
+            crate::plugins::nowplaying::setup(app.handle())?;
             tray::init(app.handle())?;
             lifecycle::spawn_idle_watcher(app.handle().clone());
             // Jendela dibuat tersembunyi (tauri.conf.json): posisikan dulu, baru tampil -> tanpa kedip.
@@ -94,6 +96,11 @@ pub fn run() {
             crate::plugins::spotify::spotify_devices,
             crate::plugins::spotify::spotify_control,
             crate::plugins::spotify::spotify_cover,
+            crate::plugins::nowplaying::nowplaying_state,
+            crate::plugins::nowplaying::nowplaying_control,
+            crate::plugins::nowplaying::nowplaying_volume,
+            crate::plugins::nowplaying::nowplaying_set_volume,
+            crate::plugins::nowplaying::nowplaying_open_uri,
             crate::core::storage::kv_get,
             crate::core::storage::kv_set,
             crate::core::storage::kv_delete,

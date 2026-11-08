@@ -2,6 +2,7 @@ pub mod capture;
 pub mod clipboard;
 pub mod converter;
 pub mod llm;
+pub mod nowplaying;
 pub mod pomodoro;
 pub mod qr;
 pub mod spotify;

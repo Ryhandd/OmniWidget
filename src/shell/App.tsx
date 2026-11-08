@@ -3,11 +3,13 @@ import { listen } from '@tauri-apps/api/event';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
 import { bridge } from '../core/bridge';
 import { islandHold } from '../core/hold';
+import { startNowPlaying } from '../core/nowplaying';
 import { MODULES } from '../core/registry';
 import { splitTabs } from '../core/tabs';
 import { Header, Pill } from './Handle';
 import { TabBar } from './TabBar';
 import { ModuleHost } from './ModuleHost';
+import { MiniPlayer } from './MiniPlayer';
 
 /**
  * Island (gaya Dynamic Island): pill kecil di top-center yang MEKAR saat di-hover lalu ciut sendiri
@@ -166,6 +168,8 @@ export function App() {
 
   // ---------------------------------------------------------------- window, keyboard, hotkey, drag OS
   useEffect(() => {
+    // Polling now-playing hidup di shell: pill tetap update walau panel ciut.
+    startNowPlaying();
     // Rust sumber kebenaran mode (mis. WebView di-reload saat Expanded).
     bridge.invoke<{ mode: string }>('shell_get_state')
       .then((s) => { if (s.mode === 'expanded') setPhase('open'); })
@@ -272,6 +276,7 @@ export function App() {
         <div class="island__panel" aria-hidden={phase !== 'open'}>
           <Header icon={def.icon} title={def.title} pinned={pinned} onPin={togglePin} onCollapse={close} />
           <TabBar active={tab} onSelect={setTab} />
+          {tab !== 'music' && <MiniPlayer onOpen={() => setTab('music')} />}
           <ModuleHost id={tab} />
         </div>
       )}

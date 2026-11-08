@@ -63,6 +63,16 @@ xcap = "0.9.8"
 [target.'cfg(target_os = "windows")'.dependencies]
 keyring = { version = "3", features = ["windows-native"] }
 windows-sys = { version = "0.61.2", features = ["Win32_System_ProcessStatus", "Win32_System_Threading", "Win32_Foundation"] }
+# Now-playing tanpa Premium: Windows SMTC (Windows.Media.Control) + Core Audio untuk volume.
+windows = { version = "0.62", features = [
+  "Foundation",
+  "Foundation_Collections",
+  "Media_Control",
+  "Storage_Streams",
+  "Win32_Media_Audio",
+  "Win32_System_Com",
+  "Win32_System_WinRT",
+] }
 [target.'cfg(target_os = "macos")'.dependencies]
 keyring = { version = "3", features = ["apple-native"] }
 [target.'cfg(target_os = "linux")'.dependencies]
