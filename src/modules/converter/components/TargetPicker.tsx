@@ -1,3 +1,4 @@
+import { FormatSelect, type SelectOption } from './FormatSelect';
 import { isImageFormat } from '../paths';
 import type { PdfPages, TargetInfo } from '../types';
 
@@ -16,53 +17,77 @@ type Props = {
   onCancel: () => void;
 };
 
+const KIND: Record<string, string> = {
+  png: 'Gambar', jpg: 'Gambar', webp: 'Gambar', bmp: 'Gambar', gif: 'Gambar', ico: 'Gambar',
+  docx: 'Dokumen', md: 'Dokumen', html: 'Dokumen', txt: 'Teks', pdf: 'PDF',
+  mp3: 'Audio', wav: 'Audio', flac: 'Audio', ogg: 'Audio', m4a: 'Audio', opus: 'Audio',
+};
+
+const kindOf = (format: string) => KIND[format] ?? 'Berkas';
+
 export function TargetPicker(p: Props) {
   const current = p.targets.find((t) => t.format === p.target);
   const showPages = p.source === 'pdf' && isImageFormat(p.target);
+  const options: SelectOption[] = p.targets.map((t) => ({
+    value: t.format,
+    label: t.format.toUpperCase(),
+    hint: kindOf(t.format),
+    disabled: !t.available,
+  }));
 
   return (
     <div class="conv__targets">
       <div class="conv__row">
-        <select
-          class="field"
-          aria-label="Format tujuan"
+        <FormatSelect
           value={p.target}
+          options={options}
+          label="Format tujuan"
           disabled={p.locked}
-          onChange={(e) => p.onTarget((e.target as HTMLSelectElement).value)}
-        >
-          {p.targets.map((t) => (
-            <option key={t.format} value={t.format} disabled={!t.available}>
-              {t.format.toUpperCase()}
-              {!t.available ? ' — tidak tersedia' : ''}
-            </option>
-          ))}
-        </select>
+          onChange={p.onTarget}
+        />
         {p.active ? (
-          <button type="button" class="btn btn--ghost" onClick={p.onCancel} disabled={p.cancelling}>
+          <button type="button" class="btn btn--ghost conv__go" onClick={p.onCancel} disabled={p.cancelling}>
             {p.cancelling ? 'Membatalkan…' : 'Batal'}
           </button>
         ) : (
-          <button type="button" class="btn" onClick={p.onConvert} disabled={!p.canConvert}>Konversi</button>
+          <button type="button" class="btn conv__go" onClick={p.onConvert} disabled={!p.canConvert}>
+            Konversi
+          </button>
         )}
       </div>
 
       {showPages && (
-        <label class="conv__row conv__opt">
-          <span class="muted">Halaman</span>
-          <select
-            class="field"
-            value={p.pdfPages}
-            disabled={p.locked}
-            onChange={(e) => p.onPages((e.target as HTMLSelectElement).value as PdfPages)}
-          >
-            <option value="all">Semua (folder bila &gt; 1 halaman)</option>
-            <option value="first">Halaman pertama saja</option>
-          </select>
-        </label>
+        <div class="conv__opt">
+          <span class="conv__opt-label">Halaman</span>
+          <div class="seg" role="group" aria-label="Halaman PDF yang diekspor">
+            <button
+              type="button"
+              class="seg__btn"
+              aria-pressed={p.pdfPages === 'all'}
+              disabled={p.locked}
+              onClick={() => p.onPages('all')}
+            >
+              Semua
+            </button>
+            <button
+              type="button"
+              class="seg__btn"
+              aria-pressed={p.pdfPages === 'first'}
+              disabled={p.locked}
+              onClick={() => p.onPages('first')}
+            >
+              Pertama
+            </button>
+          </div>
+        </div>
       )}
 
       {current && !current.available && (
         <div class="conv__hint err">Format ini tidak tersedia di perangkat ini.</div>
+      )}
+
+      {showPages && p.pdfPages === 'all' && (
+        <div class="conv__hint muted">Lebih dari satu halaman disimpan sebagai folder gambar.</div>
       )}
     </div>
   );

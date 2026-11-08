@@ -47,9 +47,9 @@ pub fn routes() -> Vec<Route> {
         }
     }
     for (f, t) in [
-        (Docx, Md), (Docx, Html), (Docx, Txt),
-        (Md, Docx), (Md, Html),
-        (Html, Md), (Html, Docx), (Html, Txt),
+        (Docx, Md), (Docx, Html), (Docx, Txt), (Docx, Pdf),
+        (Md, Docx), (Md, Html), (Md, Pdf),
+        (Html, Md), (Html, Docx), (Html, Txt), (Html, Pdf),
     ] {
         v.push(Route { from: f, to: t, engine: Engine::Doc });
     }
@@ -124,5 +124,12 @@ mod tests {
     fn dokumen_memiliki_rute_dua_arah() {
         assert!(find(Format::Html, Format::Docx).is_some());
         assert!(find(Format::Docx, Format::Html).is_some());
+    }
+
+    #[test]
+    fn dokumen_bisa_menjadi_pdf() {
+        assert_eq!(find(Format::Docx, Format::Pdf).map(|r| r.engine), Some(Engine::Doc));
+        assert!(find(Format::Md, Format::Pdf).is_some());
+        assert!(find(Format::Html, Format::Pdf).is_some());
     }
 }

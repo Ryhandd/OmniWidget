@@ -15,9 +15,81 @@
 
 .conv__targets { display: flex; flex-direction: column; gap: 8px; }
 .conv__row { display: flex; gap: 8px; align-items: center; min-width: 0; }
-.conv__row > select { flex: 1; min-width: 0; }
-.conv__opt > span { flex: none; }
+.conv__go { flex: none; }
+.conv__opt { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.conv__opt-label { flex: none; font-size: 12px; color: var(--text-dim); }
 .conv__hint { font-size: 12px; }
+
+/* ---------- Dropdown format (bukan select bawaan OS) ---------- */
+.fsel { position: relative; flex: 1; min-width: 0; }
+.fsel__trigger {
+  display: flex; align-items: center; gap: 8px; width: 100%; min-height: 34px;
+  padding: 6px 10px; text-align: left; color: var(--text);
+  background: var(--surface); border: var(--border-w) solid var(--border-c);
+  border-radius: calc(var(--radius) * 0.6); cursor: pointer;
+  transition: background var(--motion), border-color var(--motion);
+}
+.fsel__trigger:hover:not(:disabled) { background: var(--surface-2); border-color: var(--text-dim); }
+.fsel[data-open='true'] .fsel__trigger {
+  background: var(--surface-2); border-color: var(--accent);
+  outline: 2px solid var(--accent-soft); outline-offset: 0;
+}
+.fsel__trigger:disabled { opacity: 0.5; cursor: not-allowed; }
+.fsel__code { flex: none; font-size: 12.5px; font-weight: 750; letter-spacing: 0.02em; }
+.fsel__hint {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 12px; color: var(--text-dim);
+}
+.fsel__chev {
+  flex: none; width: 14px; height: 14px; margin-left: auto; color: var(--text-dim);
+  transition: transform var(--motion);
+}
+.fsel[data-open='true'] .fsel__chev { transform: rotate(180deg); color: var(--accent); }
+.fsel__menu {
+  position: absolute; z-index: 60; left: 0; right: 0; top: calc(100% + 6px); margin: 0;
+  padding: 4px; list-style: none; max-height: 236px; overflow-y: auto; overscroll-behavior: contain;
+  background: var(--surface-2); border: var(--border-w) solid var(--border-c);
+  border-radius: calc(var(--radius) * 0.7);
+  box-shadow: var(--shadow);
+  -webkit-backdrop-filter: blur(18px) saturate(1.25); backdrop-filter: blur(18px) saturate(1.25);
+  animation: fsel-in 140ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transform-origin: top center;
+}
+.fsel[data-up='true'] .fsel__menu {
+  top: auto; bottom: calc(100% + 6px); transform-origin: bottom center;
+  animation-name: fsel-in-up;
+}
+.fsel__opt {
+  display: flex; align-items: center; gap: 8px; min-width: 0;
+  padding: 7px 8px; border-radius: calc(var(--radius) * 0.45);
+  cursor: pointer; color: var(--text); transition: background var(--motion), color var(--motion);
+}
+.fsel__opt[data-active='true'] { background: var(--accent-soft); }
+.fsel__opt[data-selected='true'] .fsel__code { color: var(--accent); }
+.fsel__opt[data-disabled='true'] { opacity: 0.45; cursor: not-allowed; }
+.fsel__opt-hint {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 12px; color: var(--text-dim);
+}
+.fsel__check { flex: none; width: 14px; height: 14px; margin-left: auto; color: var(--accent); }
+
+@keyframes fsel-in { from { opacity: 0; transform: translateY(-4px) scale(0.985); } }
+@keyframes fsel-in-up { from { opacity: 0; transform: translateY(4px) scale(0.985); } }
+
+/* ---------- Segmented control ---------- */
+.seg {
+  display: flex; flex: 1; min-width: 0; gap: 2px; padding: 2px;
+  background: var(--surface); border: var(--border-w) solid var(--border-c);
+  border-radius: calc(var(--radius) * 0.55);
+}
+.seg__btn {
+  flex: 1; min-width: 0; padding: 5px 8px; border: 0; background: transparent;
+  color: var(--text-dim); border-radius: calc(var(--radius) * 0.4); font-size: 12px;
+  transition: background var(--motion), color var(--motion);
+}
+.seg__btn:hover:not(:disabled):not([aria-pressed='true']) { color: var(--text); background: var(--surface-2); }
+.seg__btn[aria-pressed='true'] { background: var(--accent); color: var(--accent-text); font-weight: 650; }
+.seg__btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .conv__out { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 12px; }
 .conv__out-label { flex: none; }

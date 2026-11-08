@@ -60,6 +60,13 @@ pub fn convert(
         Format::Html => std::fs::write(output, markdown_to_html(&blocks_to_markdown(&blocks)))?,
         Format::Txt => std::fs::write(output, blocks_to_text(&blocks))?,
         Format::Docx => write_docx(&blocks, output)?,
+        Format::Pdf => {
+            let title = input
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .unwrap_or("Dokumen");
+            write_pdf(&blocks, output, title)?
+        }
         _ => return Err(ConvError::NoRoute),
     }
     progress(1.0);
@@ -554,6 +561,214 @@ fn write_docx(blocks: &[Block], output: &Path) -> Result<(), ConvError> {
     Ok(())
 }
 
+// ---------- Tulis PDF ----------
+//
+// `genpdf` menangani pembungkusan baris, spasi, dan paginasi A4. Yang dirender hanya teks
+// terstruktur (heading, paragraf, daftar, kutipan, kode); gambar/tabel dari DOCX tidak ikut.
+
+fn write_pdf(blocks: &[Block], output: &Path, title: &str) -> Result<(), ConvError> {
+    use genpdf::{
+        elements,
+        style::{Color, Style, StyledString},
+        Document, Margins, SimplePageDecorator, Size,
+    };
+
+    const BODY: Color = Color::Rgb(31, 35, 41);
+    const HEADING: Color = Color::Rgb(15, 23, 42);
+    const MUTED: Color = Color::Rgb(85, 92, 104);
+    const RULE: Color = Color::Rgb(203, 209, 218);
+
+    let body = load_family(
+        &["arial.ttf", "segoeui.ttf", "Arial.ttf", "DejaVuSans.ttf", "LiberationSans-Regular.ttf"],
+        &["arialbd.ttf", "segoeuib.ttf", "Arial Bold.ttf", "DejaVuSans-Bold.ttf", "LiberationSans-Bold.ttf"],
+        &["ariali.ttf", "segoeuii.ttf", "Arial Italic.ttf", "DejaVuSans-Oblique.ttf", "LiberationSans-Italic.ttf"],
+        &["arialbi.ttf", "segoeuiz.ttf", "Arial Bold Italic.ttf", "DejaVuSans-BoldOblique.ttf", "LiberationSans-BoldItalic.ttf"],
+    )
+    .ok_or_else(|| {
+        ConvError::Doc(
+            "Font sistem tidak ditemukan. Arial/DejaVu/Liberation diperlukan untuk membuat PDF"
+                .into(),
+        )
+    })?;
+    let mono = load_family(
+        &["consola.ttf", "cour.ttf", "DejaVuSansMono.ttf", "LiberationMono-Regular.ttf"],
+        &["consolab.ttf", "courbd.ttf", "DejaVuSansMono-Bold.ttf", "LiberationMono-Bold.ttf"],
+        &["consolai.ttf", "couri.ttf", "DejaVuSansMono-Oblique.ttf", "LiberationMono-Italic.ttf"],
+        &["consolaz.ttf", "courbi.ttf", "DejaVuSansMono-BoldOblique.ttf", "LiberationMono-BoldItalic.ttf"],
+    );
+
+    let mut doc = Document::new(body);
+    doc.set_title(title);
+    doc.set_font_size(11);
+    doc.set_line_spacing(1.55);
+    doc.set_paper_size(Size::new(210, 297));
+    let mut decorator = SimplePageDecorator::new();
+    decorator.set_margins(Margins::vh(22, 25));
+    doc.set_page_decorator(decorator);
+
+    let mono_family = mono.map(|family| doc.add_font_family(family));
+    let body_style = Style::new().with_color(BODY);
+
+    for block in blocks {
+        match block {
+            Block::Heading(level, text) => {
+                let (size, before, after) = match level {
+                    1 => (21, 1.6, 0.55),
+                    2 => (17, 1.25, 0.5),
+                    3 => (14, 0.95, 0.4),
+                    _ => (12, 0.8, 0.35),
+                };
+                doc.push(elements::Break::new(before));
+                doc.push(elements::Paragraph::new(StyledString::new(
+                    text.clone(),
+                    Style::new()
+                        .bold()
+                        .with_font_size(size)
+                        .with_line_spacing(1.15)
+                        .with_color(HEADING),
+                )));
+                doc.push(elements::Break::new(after));
+            }
+            Block::Paragraph(text) => {
+                if text.trim().is_empty() {
+                    continue;
+                }
+                doc.push(elements::Paragraph::new(StyledString::new(
+                    text.clone(),
+                    body_style,
+                )));
+                doc.push(elements::Break::new(0.7));
+            }
+            Block::Quote(text) => {
+                if text.trim().is_empty() {
+                    continue;
+                }
+                doc.push(elements::PaddedElement::new(
+                    elements::Paragraph::new(StyledString::new(
+                        text.clone(),
+                        Style::new().italic().with_color(MUTED),
+                    )),
+                    Margins::trbl(0, 0, 0, 6),
+                ));
+                doc.push(elements::Break::new(0.7));
+            }
+            Block::Code(text) => {
+                let code_text = text.trim_end();
+                if code_text.is_empty() {
+                    continue;
+                }
+                let mut style = Style::new()
+                    .with_font_size(9)
+                    .with_line_spacing(1.4)
+                    .with_color(BODY);
+                if let Some(family) = mono_family {
+                    style = style.with_font_family(family);
+                }
+                let mut layout = elements::LinearLayout::vertical();
+                for line in code_text.lines() {
+                    layout.push(elements::Paragraph::new(StyledString::new(
+                        if line.is_empty() { " ".to_string() } else { line.to_string() },
+                        style,
+                    )));
+                }
+                let padded = elements::PaddedElement::new(layout, Margins::trbl(3, 3, 3, 4));
+                let framed = elements::FramedElement::new(padded);
+                doc.push(elements::Break::new(0.35));
+                doc.push(elements::StyledElement::new(
+                    framed,
+                    Style::new().with_color(RULE),
+                ));
+                doc.push(elements::Break::new(0.85));
+            }
+            Block::List { ordered, items } => {
+                if items.is_empty() {
+                    continue;
+                }
+                let point = |item: &String| {
+                    elements::PaddedElement::new(
+                        elements::Paragraph::new(StyledString::new(item.clone(), body_style)),
+                        Margins::trbl(0, 0, 1, 0),
+                    )
+                };
+                if *ordered {
+                    let mut list = elements::OrderedList::new();
+                    for item in items {
+                        list.push(point(item));
+                    }
+                    doc.push(list);
+                } else {
+                    let mut list = elements::UnorderedList::new();
+                    for item in items {
+                        list.push(point(item));
+                    }
+                    doc.push(list);
+                }
+                doc.push(elements::Break::new(0.6));
+            }
+        }
+    }
+
+    doc.render_to_file(output)
+        .map_err(|e| ConvError::Doc(format!("Gagal menulis PDF: {e}")))
+}
+
+/// Folder font bawaan sistem, sesuai platform. Dipakai untuk memuat TTF tanpa aset tambahan.
+fn font_dirs() -> Vec<std::path::PathBuf> {
+    use std::path::PathBuf;
+    let mut dirs = Vec::new();
+    if cfg!(windows) {
+        if let Ok(windir) = std::env::var("WINDIR") {
+            dirs.push(PathBuf::from(windir).join("Fonts"));
+        }
+        dirs.push(PathBuf::from(r"C:\Windows\Fonts"));
+        dirs.push(PathBuf::from(
+            std::env::var("LOCALAPPDATA").unwrap_or_default(),
+        ).join(r"Microsoft\Windows\Fonts"));
+    } else if cfg!(target_os = "macos") {
+        dirs.push(PathBuf::from("/System/Library/Fonts/Supplemental"));
+        dirs.push(PathBuf::from("/System/Library/Fonts"));
+        dirs.push(PathBuf::from("/Library/Fonts"));
+    } else {
+        dirs.push(PathBuf::from("/usr/share/fonts/truetype/dejavu"));
+        dirs.push(PathBuf::from("/usr/share/fonts/truetype/liberation"));
+        dirs.push(PathBuf::from("/usr/share/fonts/truetype/liberation2"));
+        dirs.push(PathBuf::from("/usr/share/fonts"));
+    }
+    dirs
+}
+
+fn load_font(files: &[&str]) -> Option<genpdf::fonts::FontData> {
+    for dir in font_dirs() {
+        for name in files {
+            let path = dir.join(name);
+            if path.is_file() {
+                if let Ok(data) = genpdf::fonts::FontData::load(&path, None) {
+                    return Some(data);
+                }
+            }
+        }
+    }
+    None
+}
+
+fn load_family(
+    regular: &[&str],
+    bold: &[&str],
+    italic: &[&str],
+    bold_italic: &[&str],
+) -> Option<genpdf::fonts::FontFamily<genpdf::fonts::FontData>> {
+    let regular = load_font(regular)?;
+    let bold = load_font(bold).unwrap_or_else(|| regular.clone());
+    let italic = load_font(italic).unwrap_or_else(|| regular.clone());
+    let bold_italic = load_font(bold_italic).unwrap_or_else(|| bold.clone());
+    Some(genpdf::fonts::FontFamily {
+        regular,
+        bold,
+        italic,
+        bold_italic,
+    })
+}
+
 // ---------- Baca DOCX ----------
 
 fn read_docx(path: &Path) -> Result<Vec<Block>, ConvError> {
@@ -797,5 +1012,61 @@ mod tests {
         assert!(txt.contains("Judul"));
         assert!(txt.contains("Halo dunia."));
         assert!(!txt.contains('#'));
+    }
+
+    #[test]
+    fn konversi_dokumen_ke_pdf_menghasilkan_pdf_valid() {
+        let dir = tempfile::tempdir().unwrap();
+        let input = dir.path().join("masukan.md");
+        std::fs::write(
+            &input,
+            "# Judul PDF\n\nParagraf isi dokumen.\n\n- satu\n- dua\n\n1. awal\n2. akhir\n\n> kutipan\n\n```\nlet x = 1;\n```\n",
+        )
+        .unwrap();
+        let output = dir.path().join("keluaran.pdf");
+
+        let cancel: CancelToken = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        convert(&input, &output, Format::Md, Format::Pdf, &cancel, &|_| {}).expect("konversi PDF");
+
+        let bytes = std::fs::read(&output).expect("baca PDF");
+        assert!(bytes.starts_with(b"%PDF"), "header bukan PDF: {}", bytes.len());
+        assert!(bytes.len() > 1_000, "PDF terlalu kecil: {}", bytes.len());
+
+        // Validasi struktural: Pdfium harus bisa membuka hasilnya dan menemukan minimal satu halaman.
+        let dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources");
+        let lib = pdfium_render::prelude::Pdfium::pdfium_platform_library_name_at_path(&dir);
+        if lib.is_file() {
+            use pdfium_render::prelude::Pdfium;
+            let pdfium = Pdfium::new(
+                Pdfium::bind_to_library(&lib).expect("muat pustaka pdfium"),
+            );
+            let pdf = pdfium
+                .load_pdf_from_file(output.to_str().unwrap(), None)
+                .expect("PDF hasil harus bisa dibuka");
+            assert!(pdf.pages().len() >= 1, "PDF tanpa halaman");
+        } else {
+            eprintln!("dilewati validasi pdfium: {} tidak ada", lib.display());
+        }
+    }
+
+    #[test]
+    fn docx_ke_pdf_juga_menghasilkan_pdf() {
+        let dir = tempfile::tempdir().unwrap();
+        let docx = dir.path().join("sumber.docx");
+        write_docx(
+            &[
+                Block::Heading(1, "Laporan".into()),
+                Block::Paragraph("Isi laporan.".into()),
+            ],
+            &docx,
+        )
+        .unwrap();
+        let output = dir.path().join("hasil.pdf");
+
+        let cancel: CancelToken = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        convert(&docx, &output, Format::Docx, Format::Pdf, &cancel, &|_| {}).expect("konversi PDF");
+
+        let bytes = std::fs::read(&output).unwrap();
+        assert!(bytes.starts_with(b"%PDF"), "header bukan PDF");
     }
 }
