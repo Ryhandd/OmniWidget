@@ -10,7 +10,7 @@ use std::{
 };
 use tokio::sync::{Notify, Semaphore};
 
-/// Dibaca oleh kode blocking (image/pdf/sidecar) di thread worker.
+/// Dibaca oleh kode blocking (image/audio/dokumen/PDF) di thread worker.
 pub type CancelToken = Arc<AtomicBool>;
 
 /// Konkurensi default. Konversi menyentuh CPU/disk berat; satu per satu menjaga RAM tetap kecil.

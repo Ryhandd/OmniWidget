@@ -12,12 +12,6 @@ pub enum ConvError {
     BadOutDir(String),
     #[error("Gambar terlalu besar ({0} MP, maks {1} MP)")]
     PixelBomb(u64, u64),
-    #[error("Sidecar '{0}' belum terpasang. Pasang lewat Pengaturan")]
-    SidecarMissing(&'static str),
-    #[error("Proses {0} gagal: {1}")]
-    SidecarFailed(&'static str, String),
-    #[error("Proses melewati batas waktu ({0} dtk)")]
-    Timeout(u64),
     #[error("Dibatalkan")]
     Cancelled,
     #[error("Image: {0}")]
@@ -26,6 +20,10 @@ pub enum ConvError {
     Io(#[from] std::io::Error),
     #[error("PDF: {0}")]
     Pdf(String),
+    #[error("Audio: {0}")]
+    Audio(String),
+    #[error("Dokumen: {0}")]
+    Doc(String),
     #[error("PDF memiliki {0} halaman (maks {1} untuk ekspor semua halaman). Pilih \"Halaman pertama\"")]
     TooManyPages(usize, usize),
     #[error("Halaman {0} berukuran {1:.0} x {2:.0} inci, terlalu besar untuk dirender dengan aman. Pilih \"Halaman pertama\" atau perkecil PDF-nya")]

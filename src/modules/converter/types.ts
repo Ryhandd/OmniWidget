@@ -3,14 +3,12 @@
 /** Nama format huruf kecil, mis. 'png', 'pdf', 'mp3'. Daftar valid ditentukan Rust (rute konversi). */
 export type Format = string;
 
-export type Engine = 'native' | 'ffmpeg' | 'pandoc' | 'pdfium';
+export type Engine = 'native' | 'audio' | 'doc' | 'pdfium';
 
 export type TargetInfo = {
   format: Format;
   engine: Engine;
-  /** Komponen tambahan yang dibutuhkan (null = bawaan). */
-  requires: string | null;
-  /** Komponen yang dibutuhkan sudah terpasang? */
+  /** Engine siap dipakai? */
   available: boolean;
 };
 

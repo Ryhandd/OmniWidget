@@ -40,6 +40,9 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "resources": {
+      "resources/pdfium.dll": "pdfium.dll"
+    },
     "publisher": "Sifra",
     "category": "Utility",
     "shortDescription": "Widget desktop modular gaya Dynamic Island",

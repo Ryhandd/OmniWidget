@@ -8,7 +8,6 @@
     "build": "tauri build",
     "web:dev": "vite",
     "web:build": "tsc --noEmit && vite build",
-    "checksums": "node scripts/fill-checksums.mjs",
     "test:web": "node scripts/test-tabs.mjs && node scripts/test-modules.mjs"
   },
   "dependencies": {

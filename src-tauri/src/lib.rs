@@ -45,7 +45,6 @@ pub fn run() {
             }
         })
         .setup(|app| {
-            app.manage(crate::core::sidecar::SidecarState::new(app.handle().clone())?);
             app.manage(ShellState::new());
             // SQLite (WAL) di app_data: draft & pengaturan modul. Dibuka sekali; dilepas bersama proses.
             let db_path = app.path().app_data_dir()?.join("omniwidget.db");
@@ -107,9 +106,6 @@ pub fn run() {
             crate::plugins::clipboard::clipboard_remove,
             crate::plugins::clipboard::clipboard_clear,
             crate::plugins::clipboard::clipboard_set_settings,
-            crate::core::sidecar::commands::sidecar_status,
-            crate::core::sidecar::commands::sidecar_install,
-            crate::core::sidecar::commands::sidecar_cancel,
             crate::core::autostart::app_autostart_get,
             crate::core::autostart::app_autostart_set,
             crate::plugins::todo::todo_list,

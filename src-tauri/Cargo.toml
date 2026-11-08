@@ -32,6 +32,18 @@ xz2 = "0.1"
 infer = "0.15"
 image = { version = "0.25", features = ["jpeg", "png", "webp", "bmp", "ico", "gif"] }
 pdfium-render = "0.8"
+
+# Konverter tanpa biner eksternal (TDD 4.1): audio & dokumen murni Rust.
+symphonia = { version = "0.5", features = ["mp3", "wav", "flac", "ogg", "vorbis", "aac", "isomp4"] }
+hound = "3.5"
+mp3lame-encoder = "0.3"
+flacenc = "0.5"
+vorbis_rs = "0.5"
+pulldown-cmark = { version = "0.12", default-features = false, features = ["html"] }
+scraper = "0.29"
+ego-tree = "0.11"
+docx-rs = "0.4"
+quick-xml = "0.37"
 rusqlite = { version = "0.32", features = ["bundled"] }
 base64 = "0.22"
 getrandom = "0.2"

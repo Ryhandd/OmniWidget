@@ -86,7 +86,7 @@ impl ShellState {
 
 /// Tahanan Deep Sleep berbasis RAII: selama objek ini hidup, widget tidak akan menghancurkan WebView.
 /// Dilepas otomatis saat di-drop (selesai, error, dibatalkan, atau task di-abort) sehingga tidak ada
-/// jalur yang lupa melepas. Dapat dipakai modul lain (unduhan sidecar, dsb.).
+/// jalur yang lupa melepas. Dapat dipakai modul lain (unduhan, dsb.).
 pub struct AwakeGuard {
     app: AppHandle,
 }

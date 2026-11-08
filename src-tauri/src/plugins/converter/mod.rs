@@ -1,7 +1,9 @@
 //! Plugin Converter (TDD 4.1). Berkas ini hanya berisi *glue* Tauri: validasi permintaan, antrean,
-//! dan pelaporan progres. Logika konversi ada di `raster`, `pdf`, `sidecar`; penamaan output di `output`;
-//! pembatalan & antrean di `job`.
+//! dan pelaporan progres. Logika konversi ada di `raster`, `audio`, `doc`, `pdf`; penamaan output di
+//! `output`; pembatalan & antrean di `job`.
 
+pub mod audio;
+pub mod doc;
 pub mod error;
 pub mod formats;
 pub mod job;
@@ -9,7 +11,6 @@ pub mod output;
 pub mod pdf;
 pub mod raster;
 pub mod render_budget;
-pub mod sidecar;
 pub mod staging;
 
 pub use job::CancelToken;
@@ -26,7 +27,6 @@ use serde::{Deserialize, Serialize};
 use tauri::{ipc::Channel, AppHandle, Manager};
 use tokio::sync::Semaphore;
 
-use crate::core::sidecar::{commands::resolve_dir, SidecarState};
 use crate::core::state::AwakeGuard;
 use error::ConvError;
 use formats::{Engine, Format};
@@ -79,9 +79,7 @@ pub enum JobEvent {
 pub struct TargetInfo {
     pub format: Format,
     pub engine: Engine,
-    /// Nama komponen tambahan yang dibutuhkan (None = bawaan).
-    pub requires: Option<&'static str>,
-    /// Komponen yang dibutuhkan sudah terpasang?
+    /// Engine siap dipakai? (PDF perlu pustaka pdfium yang ikut dipaketkan installer.)
     pub available: bool,
 }
 
@@ -100,13 +98,13 @@ pub async fn converter_probe(app: AppHandle, path: String) -> Result<ProbeResult
         return Err(ConvError::InputMissing(path));
     }
     let source = formats::detect(p).ok_or(ConvError::UnknownFormat)?;
+    let pdfium_ok = pdfium_dir(&app).is_some();
     let targets = formats::targets_for(source)
         .into_iter()
         .map(|r| TargetInfo {
             format: r.to,
             engine: r.engine,
-            requires: r.engine.sidecar(),
-            available: engine_available(&app, r.engine),
+            available: r.engine != Engine::Pdfium || pdfium_ok,
         })
         .collect();
     Ok(ProbeResult { source, targets })
@@ -151,7 +149,6 @@ struct Plan {
     out_dir: PathBuf,
     stem: String,
     pages: pdf::Pages,
-    app_data: PathBuf,
     pdfium_dir: PathBuf,
 }
 
@@ -164,10 +161,10 @@ impl Plan {
         let from = formats::detect(&input).ok_or(ConvError::UnknownFormat)?;
         let route = formats::find(from, job.target_format).ok_or(ConvError::NoRoute)?;
 
-        if let Some(name) = route.engine.sidecar() {
-            if !engine_available(app, route.engine) {
-                return Err(ConvError::SidecarMissing(name));
-            }
+        if route.engine == Engine::Pdfium && pdfium_dir(app).is_none() {
+            return Err(ConvError::Pdf(
+                "Pustaka Pdfium tidak ditemukan. Pasang ulang aplikasi untuk memulihkannya".into(),
+            ));
         }
 
         let out_dir = match job.output_dir.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
@@ -187,7 +184,6 @@ impl Plan {
             _ => output::stem_of(&input),
         };
 
-        let state = app.state::<SidecarState>();
         Ok(Self {
             input,
             from,
@@ -196,22 +192,29 @@ impl Plan {
             out_dir,
             stem,
             pages: job.options.pdf_pages,
-            app_data: state.app_data_dir.clone(),
-            pdfium_dir: resolve_dir(app, "pdfium").unwrap_or_else(|_| state.app_data_dir.join("sidecars").join("pdfium")),
+            pdfium_dir: pdfium_dir(app).unwrap_or_else(|| PathBuf::from(".")),
         })
     }
 }
 
-fn engine_available(app: &AppHandle, engine: Engine) -> bool {
-    let Some(name) = engine.sidecar() else { return true };
-    let state = app.state::<SidecarState>();
-    match engine {
-        // ffmpeg/pandoc juga boleh berasal dari PATH sistem (sama seperti saat konversi dijalankan).
-        Engine::Ffmpeg | Engine::Pandoc => sidecar::resolve(&state.app_data_dir, name).is_some(),
-        // pdfium dipasang oleh pengunduh sidecar dan ditandai dengan berkas `.ok` (lihat sidecar_status).
-        Engine::Pdfium => resolve_dir(app, name).map(|d| d.join(".ok").is_file()).unwrap_or(false),
-        Engine::Native => true,
+/// Folder yang berisi pustaka Pdfium bawaan (dipaketkan bersama installer).
+/// Di mode pengembangan, `resources/` di folder crate dipakai sebagai cadangan.
+fn pdfium_dir(app: &AppHandle) -> Option<PathBuf> {
+    let name = if cfg!(windows) {
+        "pdfium.dll"
+    } else if cfg!(target_os = "macos") {
+        "libpdfium.dylib"
+    } else {
+        "libpdfium.so"
+    };
+    let mut candidates = Vec::new();
+    if let Ok(dir) = app.path().resource_dir() {
+        candidates.push(dir.clone());
+        candidates.push(dir.join("resources"));
     }
+    candidates.push(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources"));
+    candidates.push(PathBuf::from("resources"));
+    candidates.into_iter().find(|dir| dir.join(name).is_file())
 }
 
 // ---------- Eksekusi ----------
@@ -293,8 +296,12 @@ fn execute(
             raster::convert(&plan.input, &part, plan.to, cancel, &progress)?;
             OutKind::File
         }
-        Engine::Ffmpeg | Engine::Pandoc => {
-            sidecar::convert(plan.engine, &plan.app_data, &plan.input, &part, plan.from, plan.to, cancel, &progress)?;
+        Engine::Audio => {
+            audio::convert(&plan.input, &part, plan.to, cancel, &progress)?;
+            OutKind::File
+        }
+        Engine::Doc => {
+            doc::convert(&plan.input, &part, plan.from, plan.to, cancel, &progress)?;
             OutKind::File
         }
         Engine::Pdfium => pdf::convert(&plan.input, &part, plan.to, plan.pages, &plan.pdfium_dir, cancel, &progress)?,

@@ -3,7 +3,6 @@ pub mod clipboard;
 pub mod geometry;
 pub mod lifecycle;
 pub mod scheduler;
-pub mod sidecar;
 pub mod state;
 pub mod storage;
 pub mod tray;

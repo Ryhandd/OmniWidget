@@ -21,5 +21,6 @@ Push project ke GitHub → tab **Actions** → **Build Windows** → **Run workf
 
 ## Catatan
 - Installer belum ditandatangani (code signing berbayar), jadi SmartScreen bisa muncul: klik *More info → Run anyway*.
-- Fitur PDF/audio/dokumen di Converter butuh komponen tambahan: buka **Pengaturan → Komponen tambahan → Pasang**.
+- Semua fitur Converter (gambar, PDF, audio, dokumen) berjalan tanpa memasang komponen tambahan.
+  Pustaka **Pdfium** ikut dipaketkan installer sebagai resource, jadi PDF → gambar/teks langsung bisa dipakai.
 - Autostart dimatikan default; nyalakan di **Pengaturan → Startup**.

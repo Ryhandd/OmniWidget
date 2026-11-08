@@ -137,3 +137,23 @@ fn render_page(page: &PdfPage, plan: &RenderPlan, target: &Path, to: Format) -> 
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Memastikan pustaka Pdfium yang ikut dipaketkan benar-benar bisa dimuat saat runtime.
+    /// Uji dilewati (bukan gagal) jika berkas resource belum tersedia di mesin ini.
+    #[test]
+    fn pdfium_bawaan_bisa_dimuat() {
+        let dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources");
+        let lib = Pdfium::pdfium_platform_library_name_at_path(&dir);
+        if !lib.is_file() {
+            eprintln!("dilewati: {} tidak ada", lib.display());
+            return;
+        }
+        let bindings = Pdfium::bind_to_library(&lib).expect("muat pustaka pdfium");
+        // `Pdfium::new` memanggil FPDF_InitLibrary: jika DLL tidak cocok, langkah ini gagal/panik.
+        let _pdfium = Pdfium::new(bindings);
+    }
+}

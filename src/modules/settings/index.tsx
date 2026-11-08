@@ -4,75 +4,6 @@ import { THEMES, applyTheme } from '../../themes/theme';
 import { AiSection } from './AiSection';
 import './styles.css';
 
-type InstallEvent =
-  | { event: 'started' }
-  | { event: 'downloading'; downloaded: number; total: number; speed: number }
-  | { event: 'verifying' }
-  | { event: 'extracting' }
-  | { event: 'installed' }
-  | { event: 'failed'; error: string }
-  | { event: 'cancelled' };
-
-const SIDECARS = [
-  { name: 'pdfium', label: 'Pdfium', hint: 'PDF → gambar/teks' },
-  { name: 'ffmpeg', label: 'FFmpeg', hint: 'Konversi audio' },
-  { name: 'pandoc', label: 'Pandoc', hint: 'Dokumen (DOCX/MD/HTML)' },
-];
-
-const mb = (n: number) => (n / 1024 / 1024).toFixed(1);
-
-function SidecarRow({ name, label, hint }: { name: string; label: string; hint: string }) {
-  const [installed, setInstalled] = useState<boolean | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [pct, setPct] = useState(0);
-  const [note, setNote] = useState('');
-  const [bad, setBad] = useState(false);
-
-  const refresh = () => bridge.invoke<boolean>('sidecar_status', { name }).then(setInstalled).catch(() => setInstalled(false));
-  useEffect(() => { refresh(); }, []);
-
-  const install = async () => {
-    setBusy(true); setBad(false); setNote('Memulai…'); setPct(0);
-    const ch = bridge.channel<InstallEvent>((ev) => {
-      switch (ev.event) {
-        case 'downloading':
-          setPct(ev.total ? Math.round((ev.downloaded / ev.total) * 100) : 0);
-          setNote(`Mengunduh ${mb(ev.downloaded)}${ev.total ? ` / ${mb(ev.total)}` : ''} MB`);
-          break;
-        case 'verifying': setNote('Memverifikasi checksum…'); break;
-        case 'extracting': setNote('Mengekstrak…'); break;
-        case 'installed': setNote('Terpasang.'); setPct(100); break;
-        case 'failed': setBad(true); setNote(ev.error); break;
-        case 'cancelled': setNote('Dibatalkan.'); break;
-      }
-    });
-    try {
-      await bridge.invoke('sidecar_install', { name, onEvent: ch });
-    } catch (e) {
-      setBad(true); setNote(String(e));
-    } finally {
-      setBusy(false);
-      refresh();
-    }
-  };
-
-  const cancel = () => bridge.invoke('sidecar_cancel', { name }).catch(() => {});
-
-  return (
-    <div class="set__side">
-      <div class="set__row">
-        <div class="grow"><strong>{label}</strong> <span class="muted">· {hint}</span></div>
-        {installed === null ? <span class="muted">…</span>
-          : installed && !busy ? <span style={{ color: 'var(--accent-2)' }}>Terpasang</span>
-          : busy ? <button class="btn btn--ghost" onClick={cancel}>Batal</button>
-          : <button class="btn" onClick={install}>Pasang</button>}
-      </div>
-      {busy && <div class="progress"><i style={{ width: `${pct}%` }} /></div>}
-      {note && <div class={`set__note ${bad ? 'err' : 'muted'}`}>{note}</div>}
-    </div>
-  );
-}
-
 export default function SettingsModule() {
   const [theme, setTheme] = useState(document.documentElement.dataset.theme ?? 'default');
   const [lock, setLock] = useState(false);
@@ -156,10 +87,6 @@ export default function SettingsModule() {
         <AiSection />
       </section>
 
-      <section>
-        <h4>Komponen tambahan</h4>
-        {SIDECARS.map((s) => <SidecarRow key={s.name} {...s} />)}
-      </section>
     </div>
   );
 }

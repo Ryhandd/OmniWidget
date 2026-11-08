@@ -16,8 +16,6 @@ type Props = {
   onCancel: () => void;
 };
 
-const REQUIRES_LABEL: Record<string, string> = { ffmpeg: 'FFmpeg', pandoc: 'Pandoc', pdfium: 'Pdfium' };
-
 export function TargetPicker(p: Props) {
   const current = p.targets.find((t) => t.format === p.target);
   const showPages = p.source === 'pdf' && isImageFormat(p.target);
@@ -35,7 +33,7 @@ export function TargetPicker(p: Props) {
           {p.targets.map((t) => (
             <option key={t.format} value={t.format} disabled={!t.available}>
               {t.format.toUpperCase()}
-              {!t.available && t.requires ? ` — perlu ${REQUIRES_LABEL[t.requires] ?? t.requires}` : ''}
+              {!t.available ? ' — tidak tersedia' : ''}
             </option>
           ))}
         </select>
@@ -63,10 +61,8 @@ export function TargetPicker(p: Props) {
         </label>
       )}
 
-      {current && !current.available && current.requires && (
-        <div class="conv__hint err">
-          Butuh {REQUIRES_LABEL[current.requires] ?? current.requires}. Pasang dulu di tab Pengaturan → Komponen tambahan.
-        </div>
+      {current && !current.available && (
+        <div class="conv__hint err">Format ini tidak tersedia di perangkat ini.</div>
       )}
     </div>
   );
