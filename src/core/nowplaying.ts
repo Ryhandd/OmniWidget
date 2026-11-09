@@ -61,6 +61,7 @@ let artKey = '';
 let lastHistoryKey = '';
 let volumeTimer: number | undefined;
 let pendingVolume = 0;
+let lastKeepAlive = 0;
 
 function persistHistory() { ls.set(HISTORY_KEY, JSON.stringify(state.history)); }
 function persistPlaylists() { ls.set(PLAYLIST_KEY, JSON.stringify(state.playlists)); }
@@ -96,6 +97,13 @@ async function poll() {
         state = { ...state, history };
         persistHistory();
       }
+    }
+
+    // Lagu yang berjalan berarti widget masih dipakai: cegah Deep Sleep menghancurkan WebView.
+    // Di-throttle karena polling berjalan tiap detik.
+    if (snap.available && snap.playing && Date.now() - lastKeepAlive >= 15_000) {
+      lastKeepAlive = Date.now();
+      bridge.invoke('shell_activity').catch(() => {});
     }
 
     update({ snap, art, fetchedAt: Date.now(), error: null });

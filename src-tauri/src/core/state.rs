@@ -10,8 +10,9 @@ use tauri::{AppHandle, Manager};
 
 use crate::core::window_manager::Mode;
 
-/// Default: Deep Sleep setelah 5 menit tanpa interaksi (0 = nonaktif).
-pub const DEFAULT_SLEEP_SECS: u64 = 5 * 60;
+/// Default: Deep Sleep otomatis nonaktif (0 = nonaktif) agar widget tidak hilang sendiri.
+/// Pengguna tetap bisa mengaktifkannya lewat Pengaturan, dan tidur manual tetap tersedia.
+pub const DEFAULT_SLEEP_SECS: u64 = 0;
 
 pub struct ShellState {
     pub mode: Mutex<Mode>,

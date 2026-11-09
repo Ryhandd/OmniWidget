@@ -283,6 +283,7 @@ export function App() {
           active={tab}
           shown={shown}
           live
+          compact={phase === 'pill'}
           measureRef={pillRef}
           onHover={hover}
           onSelect={choose}

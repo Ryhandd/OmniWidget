@@ -89,6 +89,83 @@ fn release_heap() {
     }
 }
 
+/// Kembalikan working set proses lain (mis. child WebView2) ke OS. Diam saja bila akses ditolak.
+#[cfg(target_os = "windows")]
+fn trim_process(pid: u32) {
+    use windows_sys::Win32::Foundation::CloseHandle;
+    use windows_sys::Win32::System::ProcessStatus::EmptyWorkingSet;
+    use windows_sys::Win32::System::Threading::{OpenProcess, PROCESS_QUERY_INFORMATION, PROCESS_SET_QUOTA};
+    unsafe {
+        let h = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_SET_QUOTA, 0, pid);
+        if !h.is_null() {
+            EmptyWorkingSet(h);
+            CloseHandle(h);
+        }
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn trim_process(_pid: u32) {}
+
+/// `pid` adalah turunan `root` (dibatasi kedalaman agar tidak ada loop parent yang aneh)?
+fn is_descendant(sys: &System, pid: Pid, root: Pid) -> bool {
+    let mut cur = pid;
+    for _ in 0..16 {
+        let Some(p) = sys.process(cur) else { return false };
+        let Some(parent) = p.parent() else { return false };
+        if parent == root {
+            return true;
+        }
+        cur = parent;
+    }
+    false
+}
+
+/// Di atas ambang ini widget mulai mengembalikan memori ke OS. 75% cukup dini sebelum Windows
+/// mulai menekan WebView2 (yang membuat jendela hilang).
+const MEM_PRESSURE: f64 = 0.75;
+const GUARD_TICK: std::time::Duration = std::time::Duration::from_secs(25);
+
+/// Penjaga memori otomatis. Saat RAM sistem penuh: kosongkan working set proses inti + seluruh
+/// child `msedgewebview2` milik OmniWidget, dan lepas cache thumbnail clipboard. Tidak menutup
+/// aplikasi apa pun, jadi widget tetap hidup.
+pub fn spawn_memory_guard(app: AppHandle) {
+    std::thread::Builder::new()
+        .name("memory-guard".into())
+        .spawn(move || {
+            let Ok(mut sys) = System::new() else { return };
+            loop {
+                std::thread::sleep(GUARD_TICK);
+                sys.refresh_memory();
+                let total = sys.total_memory();
+                if total == 0 {
+                    continue;
+                }
+                if (sys.used_memory() as f64 / total as f64) < MEM_PRESSURE {
+                    continue;
+                }
+                sys.refresh_processes_specifics(
+                    ProcessesToUpdate::All,
+                    true,
+                    ProcessRefreshKind::nothing().with_memory(),
+                );
+                let Ok(me) = sysinfo::get_current_pid() else { continue };
+                release_heap();
+                for (pid, p) in sys.processes() {
+                    if *pid == me {
+                        continue;
+                    }
+                    let name = p.name().to_string_lossy().to_ascii_lowercase();
+                    if name.starts_with("msedgewebview2") && is_descendant(&sys, *pid, me) {
+                        trim_process(pid.as_u32());
+                    }
+                }
+                crate::plugins::clipboard::release_thumbnails(&app);
+            }
+        })
+        .ok();
+}
+
 // ---------------------------------------------------------------- Commands
 
 /// Satu sampel ringan (UI memanggil 1x/detik HANYA saat tab terlihat).

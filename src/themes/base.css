@@ -117,6 +117,21 @@ button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-
 .isle__eq i:nth-child(4) { animation-delay: 420ms; }
 .isle__eq:not([data-playing]) i { animation-play-state: paused; transform: scaleY(0.3); opacity: 0.7; }
 .isle__icon { display: grid; place-items: center; width: 16px; height: 16px; }
+
+/* Saat lagu diputar: baris ciut hanya jam + lagu (island modul disembunyikan). */
+.islebar--tight { gap: 7px; }
+.isle--song {
+  max-width: min(58vw, 380px); min-width: 0; gap: 8px;
+  color: var(--text); cursor: pointer;
+}
+.isle__song {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 12.5px; font-weight: 600;
+}
+.isle__artist {
+  flex: none; max-width: 132px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 11.5px; font-weight: 500; color: var(--text-dim);
+}
 .isle__badge {
   position: absolute; top: 3px; right: 3px; width: 5px; height: 5px; border-radius: 99px;
   background: var(--accent-2); box-shadow: 0 0 0 2px var(--surface);

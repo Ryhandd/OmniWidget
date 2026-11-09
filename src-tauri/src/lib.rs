@@ -65,6 +65,8 @@ pub fn run() {
             crate::plugins::nowplaying::setup(app.handle())?;
             tray::init(app.handle())?;
             lifecycle::spawn_idle_watcher(app.handle().clone());
+            // Penjaga RAM: kembalikan working set ke OS saat memori sistem menekan, tanpa menutup widget.
+            crate::plugins::sysmon::spawn_memory_guard(app.handle().clone());
             // Jendela dibuat tersembunyi (tauri.conf.json): posisikan dulu, baru tampil -> tanpa kedip.
             if let Some(w) = app.get_webview_window(lifecycle::MAIN) {
                 window_manager::show(&w, window_manager::Placement::TopCenter);

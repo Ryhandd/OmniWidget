@@ -32,6 +32,8 @@ type Props = {
   shown: string;
   /** false saat widget masih ciut: jam tetap berdetak, label tidak melebar. */
   live: boolean;
+  /** Saat ciut dan ada lagu diputar: cukup jam + judul lagu, island modul disembunyikan. */
+  compact: boolean;
   measureRef: Ref<HTMLDivElement>;
   /** Hover island: tampilkan modul itu tanpa mengubah pilihan tersimpan. */
   onHover: (id: string) => void;
@@ -45,11 +47,13 @@ type Props = {
  * Deretan island modul di atas layar. Saat ciut hanya ikon yang terlihat; mengarahkan kursor ke
  * salah satu island membuka panel modul tersebut. Klik menyimpan pilihan ke localStorage.
  */
-export function IslandBar({ active, shown, live, measureRef, onHover, onSelect, onOpen }: Props) {
+export function IslandBar({ active, shown, live, compact, measureRef, onHover, onSelect, onOpen }: Props) {
   const time = useClock(live);
   const items = useIndicators();
   const np = useNowPlaying();
   const playing = np.snap?.available && np.snap.title ? np.snap : null;
+  // Saat ciut, lagu yang diputar mengambil alih baris: hanya jam + lagu.
+  const tight = compact && !!playing;
 
   const badge = (id: string) => {
     if (items.some((i) => i.tab === id || i.id === id)) return true;
@@ -57,7 +61,12 @@ export function IslandBar({ active, shown, live, measureRef, onHover, onSelect, 
   };
 
   return (
-    <div ref={measureRef} class="islebar" role="tablist" aria-label="Modul OmniWidget">
+    <div
+      ref={measureRef}
+      class={`islebar${tight ? ' islebar--tight' : ''}`}
+      role="tablist"
+      aria-label="Modul OmniWidget"
+    >
       <div
         class="isle isle--clock"
         data-tauri-drag-region
@@ -77,24 +86,39 @@ export function IslandBar({ active, shown, live, measureRef, onHover, onSelect, 
         )}
       </div>
 
-      {MODULES.map((m) => (
+      {tight && playing ? (
         <button
-          key={m.id}
           type="button"
-          role="tab"
-          class="isle"
-          aria-selected={m.id === active}
-          aria-label={m.title}
-          title={m.title}
-          data-shown={m.id === shown ? '' : undefined}
-          onPointerEnter={() => onHover(m.id)}
-          onFocus={() => onHover(m.id)}
-          onClick={() => onSelect(m.id)}
+          class="isle isle--song"
+          title={`${playing.title}${playing.artist ? ` — ${playing.artist}` : ''}`}
+          aria-label={`Buka Musik: ${playing.title}`}
+          onPointerEnter={() => onHover('music')}
+          onFocus={() => onHover('music')}
+          onClick={() => onSelect('music')}
         >
-          <span class="isle__icon" aria-hidden="true">{m.icon}</span>
-          {badge(m.id) && <i class="isle__badge" aria-hidden="true" />}
+          <span class="isle__song">{playing.title}</span>
+          {playing.artist && <span class="isle__artist">{playing.artist}</span>}
         </button>
-      ))}
+      ) : (
+        MODULES.map((m) => (
+          <button
+            key={m.id}
+            type="button"
+            role="tab"
+            class="isle"
+            aria-selected={m.id === active}
+            aria-label={m.title}
+            title={m.title}
+            data-shown={m.id === shown ? '' : undefined}
+            onPointerEnter={() => onHover(m.id)}
+            onFocus={() => onHover(m.id)}
+            onClick={() => onSelect(m.id)}
+          >
+            <span class="isle__icon" aria-hidden="true">{m.icon}</span>
+            {badge(m.id) && <i class="isle__badge" aria-hidden="true" />}
+          </button>
+        ))
+      )}
 
     </div>
   );

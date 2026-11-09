@@ -84,7 +84,7 @@
   border-color: var(--border-c);
 }
 .mus__btn--main:hover:not(:disabled) { background: var(--accent); color: var(--accent-text); filter: brightness(1.08); }
-.mus__btn svg { width: 17px; height: 17px; }
+.mus__btn svg { width: 17px; height: 17px; display: block; }
 .mus__btn--main svg { width: 20px; height: 20px; }
 .mus__badge {
   position: absolute; right: 4px; bottom: 2px; font-size: 8.5px; font-weight: 800; line-height: 1;
