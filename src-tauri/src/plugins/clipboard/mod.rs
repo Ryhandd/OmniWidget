@@ -18,7 +18,7 @@ pub mod images;
 pub mod privacy;
 pub mod ring;
 pub mod store;
-mod watcher;
+pub(crate) mod watcher;
 
 use std::{
     collections::HashSet,

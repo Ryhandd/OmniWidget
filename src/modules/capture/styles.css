@@ -9,6 +9,9 @@
 .cap__tool:hover { background: var(--surface-2); border-color: var(--accent); }
 .cap__tool:active { transform: scale(0.98); }
 .cap__tool span.muted { font-size: 11.5px; }
+.cap__tool--wide { grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 10px; }
+.cap__tool--wide .cap__ico { margin-bottom: 0; flex: none; }
+.cap__tooltext { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .cap__ico { display: grid; place-items: center; width: 34px; height: 34px; margin-bottom: 4px; border-radius: calc(var(--radius) * 0.7); background: var(--accent-soft); color: var(--accent); }
 .cap__ico svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .cap__err { font-size: 12px; }

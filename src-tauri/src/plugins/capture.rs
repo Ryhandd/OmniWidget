@@ -6,6 +6,7 @@ use std::collections::VecDeque;
 use std::sync::Mutex;
 use std::time::Duration;
 
+use base64::{engine::general_purpose::STANDARD, Engine as _};
 use image::RgbaImage;
 use serde::Serialize;
 use tauri::ipc::Response;
@@ -102,10 +103,10 @@ pub struct Recent {
 
 // ---------------------------------------------------------------- Commands
 
-/// Mulai mode capture: "eyedropper" | "ruler" | "qr".
+/// Mulai mode capture: "eyedropper" | "ruler" | "qr" | "draw".
 #[tauri::command]
 pub async fn capture_start(app: AppHandle, state: State<'_, CaptureState>, mode: String) -> Result<(), String> {
-    if !matches!(mode.as_str(), "eyedropper" | "ruler" | "qr") {
+    if !matches!(mode.as_str(), "eyedropper" | "ruler" | "qr" | "draw") {
         return Err("Mode tidak dikenal".into());
     }
     if let Some(w) = app.get_webview_window(OVERLAY) {
@@ -232,6 +233,50 @@ pub async fn capture_qr(app: AppHandle, x: f64, y: f64, w: f64, h: f64) -> Resul
     let found = tokio::task::spawn_blocking(move || crate::plugins::qr::decode_rgba(&crop)).await.map_err(err)?;
     crate::plugins::qr::remember(&app, found.clone(), "area layar");
     Ok(found)
+}
+
+/// Salin hasil coret layar + screenshot ke clipboard sebagai satu PNG.
+/// Frontend mengirim PNG transparan berisi coretan; Rust menimpanya ke snapshot layar asli.
+#[tauri::command]
+pub async fn capture_annotate(app: AppHandle, state: State<'_, CaptureState>, png: String) -> Result<(), String> {
+    // Batas string base64 (PNG transparan 4K biasanya jauh di bawah ini).
+    const MAX_B64: usize = 48 * 1024 * 1024;
+    let raw = png.split_once(',').map(|(_, d)| d).unwrap_or(png.as_str());
+    if raw.len() > MAX_B64 {
+        return Err("Coretan terlalu besar untuk disalin".into());
+    }
+    let bytes = STANDARD.decode(raw).map_err(|e| format!("Gambar coretan tidak sah: {e}"))?;
+    let base = {
+        let g = state.snap.lock().unwrap();
+        g.as_ref().ok_or("Snapshot layar tidak tersedia")?.img.clone()
+    };
+    let out = tokio::task::spawn_blocking(move || -> Result<Vec<u8>, String> {
+        let layer = image::load_from_memory(&bytes).map_err(err)?.to_rgba8();
+        let mut merged = base;
+        let layer = if layer.dimensions() != merged.dimensions() {
+            image::imageops::resize(&layer, merged.width(), merged.height(), image::imageops::FilterType::Triangle)
+        } else {
+            layer
+        };
+        image::imageops::overlay(&mut merged, &layer, 0, 0);
+        let mut png = Vec::new();
+        merged.write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).map_err(err)?;
+        Ok(png)
+    })
+    .await
+    .map_err(err)??;
+    // Tandai sebagai tulisan kita sendiri agar hasil coretan tidak masuk riwayat Clipboard Manager.
+    if let Some(st) = app.try_state::<crate::plugins::clipboard::ClipState>() {
+        st.expect_self_write(crate::plugins::clipboard::ring::Kind::Image, 0);
+    }
+    tokio::task::spawn_blocking(move || crate::plugins::clipboard::watcher::write_image(&out))
+        .await
+        .map_err(err)??;
+    let _ = app.emit(
+        "shell://indicator",
+        serde_json::json!({ "id": "capture", "icon": "✎", "label": "Coretan disalin", "tone": "ok", "tab": "capture", "ttl": 2500 }),
+    );
+    Ok(())
 }
 
 /// Tutup overlay. `open_tab`: buka panel widget ke modul tertentu sesudahnya (mis. hasil QR).

@@ -43,3 +43,62 @@ button { font: inherit; cursor: pointer; }
 .rline text { paint-order: stroke; stroke: #0b0c0f; stroke-width: 3px; }
 
 .qbox { position: fixed; z-index: 2; pointer-events: none; outline: 2px dashed #4ade80; box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.38); }
+
+/* ---------- Coret layar (mirip Page Marker) ---------- */
+.drw { position: fixed; inset: 0; cursor: crosshair; background: rgba(6, 8, 14, 0.03); }
+.drw__canvas { position: fixed; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+
+.drw__bar {
+  position: fixed; right: 16px; top: 50%; transform: translateY(-50%); z-index: 5;
+  display: flex; flex-direction: column; align-items: stretch; gap: 7px; width: 68px; padding: 10px 8px;
+  background: rgba(11, 12, 15, 0.94); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 14px;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.45); cursor: default;
+}
+.drw__colors { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; justify-items: center; }
+.drw__sw { width: 15px; height: 15px; padding: 0; border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 50%; }
+.drw__sw[aria-pressed='true'] { outline: 2px solid #fff; outline-offset: 1px; transform: scale(1.12); }
+
+.drw__tools { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
+.drw__btn {
+  display: grid; place-items: center; width: 24px; height: 24px; padding: 0;
+  border: 0; border-radius: 6px; background: transparent; color: #c9cdd6;
+}
+.drw__btn:hover:not(:disabled) { background: #1f2229; color: #fff; }
+.drw__btn[aria-pressed='true'] { background: #8b9dff; color: #0b0c0f; }
+.drw__btn:disabled { opacity: 0.32; cursor: default; }
+.drw__btn svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+.drw__sep { height: 1px; background: rgba(255, 255, 255, 0.1); }
+
+.drw__size { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10px; color: #8b919e; }
+.drw__size input { width: 46px; margin: 0; accent-color: #8b9dff; }
+.drw__action {
+  padding: 5px 4px; border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 7px;
+  background: transparent; color: #c9cdd6; font-size: 10.5px; font-weight: 700;
+}
+.drw__action:hover { background: #1f2229; color: #fff; }
+.drw__action--main { background: #8b9dff; border-color: transparent; color: #0b0c0f; }
+.drw__action--main:hover { background: #a3b2ff; color: #0b0c0f; }
+
+.drw__text {
+  position: fixed; z-index: 6; min-width: 140px; max-width: 70vw; padding: 3px 7px;
+  background: rgba(11, 12, 15, 0.92); border: 1px solid #8b9dff; border-radius: 6px;
+  font-weight: 700; line-height: 1.2; outline: none;
+}
+.drw__text::placeholder { color: rgba(255, 255, 255, 0.4); font-weight: 500; }
+
+.drw__toast {
+  position: fixed; left: 50%; bottom: 58px; transform: translateX(-50%); z-index: 6;
+  padding: 7px 14px; border-radius: 99px; background: rgba(11, 12, 15, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.14); color: #e8eaf0; font-size: 12px; font-weight: 600;
+}
+.drw__hint {
+  position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 5;
+  padding: 6px 12px; border-radius: 99px; white-space: nowrap;
+  background: rgba(11, 12, 15, 0.86); border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #9aa0b0; font-size: 11.5px; font-weight: 600; pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drw__sw, .drw__action { transition: none; }
+}

@@ -18,7 +18,7 @@ export default function CaptureModule() {
 
   const pickFormat = (f: ColorFormat) => { setFormat(f); bridge.invoke('kv_set', { key: FORMAT_KEY, value: f }).catch(() => {}); };
 
-  const start = (mode: 'eyedropper' | 'ruler') => {
+  const start = (mode: 'eyedropper' | 'ruler' | 'draw') => {
     setErr('');
     bridge.invoke('capture_start', { mode }).catch((e) => setErr(String(e)));
   };
@@ -44,6 +44,15 @@ export default function CaptureModule() {
           </span>
           <strong>Penggaris piksel</strong>
           <span class="muted">Seret untuk ukur kotak / garis</span>
+        </button>
+        <button type="button" class="cap__tool cap__tool--wide" onClick={() => start('draw')}>
+          <span class="cap__ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M4 20l4-1L18 9l-3-3L5 16zM14 5l3 3M4 4l4 1" /></svg>
+          </span>
+          <span class="cap__tooltext">
+            <strong>Coret layar</strong>
+            <span class="muted">Pena, stabilo, panah, teks — lalu salin hasilnya</span>
+          </span>
         </button>
       </div>
       {err && <div class="cap__err err">{err}</div>}
@@ -79,6 +88,7 @@ export default function CaptureModule() {
       <section class="cap__keys muted">
         <div><kbd>Klik</kbd> ambil · <kbd>←↑→↓</kbd> geser 1 px · <kbd>Enter</kbd> ambil · <kbd>Esc</kbd> batal</div>
         <div>Penggaris: <kbd>B</kbd> kotak · <kbd>L</kbd> garis · <kbd>C</kbd> salin ukuran · <kbd>Esc</kbd> selesai</div>
+        <div>Coret layar: seret untuk gambar · <kbd>Ctrl</kbd>+<kbd>Z</kbd> urungkan · <kbd>[</kbd> <kbd>]</kbd> ketebalan · <kbd>Esc</kbd> selesai</div>
       </section>
     </div>
   );

@@ -661,4 +661,42 @@ const test = (name, fn) => { fn(); passed++; console.log('  ok  ' + name); };
   });
 }
 
+// ---------------- Coret layar: geometri overlay ----------------
+{
+  const D = await load('src/overlay/draw.ts');
+
+  test('coret: ketebalan dijepit dan tahan nilai rusak', () => {
+    assert.equal(D.clampSize(6), 6);
+    assert.equal(D.clampSize(-10), D.MIN_SIZE);
+    assert.equal(D.clampSize(999), D.MAX_SIZE);
+    assert.equal(D.clampSize(NaN), 6);
+    assert.equal(D.clampSize(5.6), 6);
+  });
+
+  test('coret: kotak menormalkan seret ke segala arah', () => {
+    assert.deepEqual(D.boxOf({ x: 10, y: 20 }, { x: 30, y: 50 }), { left: 10, top: 20, width: 20, height: 30 });
+    assert.deepEqual(D.boxOf({ x: 30, y: 50 }, { x: 10, y: 20 }), { left: 10, top: 20, width: 20, height: 30 });
+  });
+
+  test('coret: kepala panah berujung di titik akhir dan simetris', () => {
+    const a = { x: 0, y: 0 };
+    const b = { x: 100, y: 0 };
+    const [tip, left, right] = D.arrowHead(a, b, 4);
+    assert.deepEqual(tip, b);
+    assert.ok(Math.abs(left.x - right.x) < 1e-9, 'sayap sejajar sumbu panah');
+    assert.ok(Math.abs(left.y + right.y) < 1e-9, 'sayap simetris');
+    assert.ok(left.x < b.x && right.x < b.x, 'kepala berada di belakang ujung');
+  });
+
+  test('coret: gerakan kecil diabaikan dan font mengikuti ketebalan', () => {
+    assert.equal(D.moved({ x: 0, y: 0 }, { x: 0.2, y: 0.2 }), false);
+    assert.equal(D.moved({ x: 0, y: 0 }, { x: 3, y: 4 }), true);
+    assert.ok(D.fontSize(4) < D.fontSize(12));
+    assert.equal(D.fontSize(999), D.fontSize(D.MAX_SIZE));
+    assert.equal(D.isDark('#111111'), true);
+    assert.equal(D.isDark('#ffffff'), false);
+    assert.equal(D.isDark('bukan-warna'), false);
+  });
+}
+
 console.log(`modul: ${passed} tes lolos`);

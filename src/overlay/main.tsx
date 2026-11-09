@@ -2,11 +2,12 @@ import { render } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { bridge } from '../core/bridge';
 import { formatColor, inkOn, type ColorFormat, type Rgb } from '../modules/capture/color';
+import Draw from './DrawPad';
 import './overlay.css';
 
 // Overlay layar penuh on-demand (TDD 4.6). Transparan: desktop asli terlihat langsung; sampling warna
 // memakai snapshot di Rust (hanya potongan 15x15 yang dikirim ke sini).
-type Mode = 'eyedropper' | 'ruler' | 'qr';
+type Mode = 'eyedropper' | 'ruler' | 'qr' | 'draw';
 declare global { interface Window { __OVERLAY__?: { mode: Mode; scale: number } } }
 
 const cfg = window.__OVERLAY__ ?? { mode: (new URLSearchParams(location.search).get('mode') as Mode) || 'ruler', scale: devicePixelRatio || 1 };
@@ -211,5 +212,5 @@ function QrRegion() {
   );
 }
 
-const View = cfg.mode === 'eyedropper' ? Eyedropper : cfg.mode === 'qr' ? QrRegion : Ruler;
+const View = cfg.mode === 'eyedropper' ? Eyedropper : cfg.mode === 'qr' ? QrRegion : cfg.mode === 'draw' ? Draw : Ruler;
 render(<View />, document.getElementById('app')!);

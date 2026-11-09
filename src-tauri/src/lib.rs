@@ -132,6 +132,7 @@ pub fn run() {
             crate::plugins::capture::capture_patch,
             crate::plugins::capture::capture_pick,
             crate::plugins::capture::capture_qr,
+            crate::plugins::capture::capture_annotate,
             crate::plugins::capture::capture_close,
             crate::plugins::capture::capture_recent,
             crate::plugins::qr::qr_generate,
