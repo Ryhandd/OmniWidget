@@ -128,6 +128,8 @@ pub fn run() {
             crate::plugins::pomodoro::pomo_skip,
             crate::plugins::pomodoro::pomo_reset,
             crate::plugins::pomodoro::pomo_set_config,
+            crate::plugins::brightness::brightness_get,
+            crate::plugins::brightness::brightness_set,
             crate::plugins::capture::capture_start,
             crate::plugins::capture::capture_patch,
             crate::plugins::capture::capture_pick,

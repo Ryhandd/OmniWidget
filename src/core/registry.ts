@@ -15,6 +15,7 @@ export const MODULES: ModuleDef[] = [
   { id: 'clipboard', title: 'Clipboard', icon: '⧉', load: () => import('../modules/clipboard') },
   { id: 'converter', title: 'Converter', icon: '⇄', load: () => import('../modules/converter') },
   { id: 'music', title: 'Musik', icon: '♪', load: () => import('../modules/music') },
+  { id: 'brightness', title: 'Kecerahan', icon: '☀', load: () => import('../modules/brightness') },
   { id: 'capture', title: 'Eyedropper & Penggaris', icon: '◉', load: () => import('../modules/capture') },
   { id: 'qr', title: 'QR Code', icon: '▦', load: () => import('../modules/qr') },
   { id: 'sysmon', title: 'Monitor Sistem', icon: '∿', load: () => import('../modules/sysmon') },

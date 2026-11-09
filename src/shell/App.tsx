@@ -5,15 +5,15 @@ import { bridge } from '../core/bridge';
 import { islandHold } from '../core/hold';
 import { startNowPlaying } from '../core/nowplaying';
 import { MODULES } from '../core/registry';
-import { splitTabs } from '../core/tabs';
-import { Header, Pill } from './Handle';
-import { TabBar } from './TabBar';
+import { Header } from './Handle';
+import { IslandBar } from './IslandBar';
 import { ModuleHost } from './ModuleHost';
 import { MiniPlayer } from './MiniPlayer';
 
 /**
- * Island (gaya Dynamic Island): pill kecil di top-center yang MEKAR saat di-hover lalu ciut sendiri
- * saat kursor pergi. Urutan selalu: jendela membesar dulu -> CSS memekarkan clip-path; saat ciut,
+ * Shell bergaya Dynamic Island: baris island modul di top-center. Saat ciut hanya deretan island
+ * yang terlihat; hover salah satu island membuka panel modul itu, klik menyimpan pilihannya.
+ * Urutan selalu: jendela membesar dulu -> CSS memekarkan clip-path; saat ciut,
  * CSS menyusut dulu -> baru jendela mengecil. Jadi tidak ada area transparan yang tertinggal.
  *
  *   pill --hover 160ms / klik / hotkey / drag file--> opening -> open
@@ -25,7 +25,7 @@ const HOVER_OPEN_MS = 160; // hover-intent: lewat sekilas tidak membuka
 const LEAVE_CLOSE_MS = 420;
 const BLUR_CLOSE_MS = 160;
 const SAFETY_MS = 1500; // pengaman bila pointerleave terlewat
-const PILL_W = { min: 112, max: 340 };
+const PILL_W = { min: 160, max: 900 };
 const morphMs = () => (matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 300);
 
 const PIN_KEY = 'omniwidget.pin';
@@ -56,15 +56,16 @@ export function App() {
     return MODULES.some((m) => m.id === t) ? t! : MODULES[0].id;
   });
   const setTab = useCallback((id: string) => { setTabState(id); write(TAB_KEY, id); }, []);
-  const tabRef = useRef(tab);
-  tabRef.current = tab;
+
+  /** Modul yang sedang dipratinjau lewat hover (belum disimpan). */
+  const [preview, setPreview] = useState<string | null>(null);
 
   const [pinned, setPinned] = useState(read(PIN_KEY) === '1');
   const pinnedRef = useRef(pinned);
   pinnedRef.current = pinned;
 
-  const [pw, setPw] = useState(200);
-  const pwRef = useRef(200);
+  const [pw, setPw] = useState(470);
+  const pwRef = useRef(470);
   const pillRef = useRef<HTMLDivElement>(null);
 
   const gen = useRef(0); // generasi transisi: transisi baru membatalkan yang lama
@@ -101,8 +102,9 @@ export function App() {
     setPhase('closing');
     window.setTimeout(() => {
       if (g !== gen.current) return;
-      // Fase pill dulu (clip langsung berbentuk pill, tanpa transisi), baru jendela mengecil.
+      // Fase pill dulu (clip langsung berbentuk baris island, tanpa transisi), baru jendela mengecil.
       setPhase('pill');
+      setPreview(null);
       bridge.invoke('window_set_mode', { mode: 'pill', width: pwRef.current }).catch(() => {});
     }, morphMs());
   }, []);
@@ -164,6 +166,7 @@ export function App() {
     suppress.current = false;
     clear(tOpen); clear(tSafety);
     if (isOpen()) scheduleClose(LEAVE_CLOSE_MS);
+    else setPreview(null); // kursor pergi sebelum panel terbuka: jangan tinggalkan pratinjau basi
   };
 
   // ---------------------------------------------------------------- window, keyboard, hotkey, drag OS
@@ -182,11 +185,10 @@ export function App() {
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && phaseRef.current !== 'pill') { close(); return; }
-      // Alt+1..9: lompat ke tab (ikut urutan dock).
+      // Alt+1..9: lompat ke modul sesuai urutan deretan island.
       if (e.altKey && /^[1-9]$/.test(e.key)) {
-        const { visible } = splitTabs(MODULES, tabRef.current);
-        const m = visible[Number(e.key) - 1];
-        if (m) { e.preventDefault(); setTab(m.id); void open(); }
+        const m = MODULES[Number(e.key) - 1];
+        if (m) { e.preventDefault(); setPreview(m.id); setTab(m.id); void open(); }
       }
     };
     window.addEventListener('blur', onBlur);
@@ -251,8 +253,19 @@ export function App() {
 
   const togglePin = () => setPinned((v) => { write(PIN_KEY, v ? '0' : '1'); return !v; });
 
-  const def = MODULES.find((m) => m.id === tab) ?? MODULES[0];
+  const shown = preview && MODULES.some((m) => m.id === preview) ? preview : tab;
+  const def = MODULES.find((m) => m.id === shown) ?? MODULES[0];
   const panel = phase !== 'pill';
+
+  const choose = (id: string) => {
+    setPreview(id);
+    setTab(id);
+    if (!isOpen()) void open();
+  };
+  const hover = (id: string) => {
+    setPreview(id);
+    if (phaseRef.current === 'pill') armOpen();
+  };
 
   return (
     <div
@@ -265,19 +278,22 @@ export function App() {
       onPointerDown={onDown}
       onPointerLeave={onLeave}
     >
-      <div class="island__pill" aria-hidden={phase === 'open'} onClick={phase === 'pill' ? () => void open() : undefined}>
-        <Pill
-          live={phase !== 'open'}
+      <div class="island__bar">
+        <IslandBar
+          active={tab}
+          shown={shown}
+          live
           measureRef={pillRef}
-          onChip={(t) => { if (t && MODULES.some((m) => m.id === t)) setTab(t); void open(); }}
+          onHover={hover}
+          onSelect={choose}
+          onOpen={() => void open()}
         />
       </div>
       {panel && (
         <div class="island__panel" aria-hidden={phase !== 'open'}>
           <Header icon={def.icon} title={def.title} pinned={pinned} onPin={togglePin} onCollapse={close} />
-          <TabBar active={tab} onSelect={setTab} />
-          {tab !== 'music' && <MiniPlayer onOpen={() => setTab('music')} />}
-          <ModuleHost id={tab} />
+          {shown !== 'music' && <MiniPlayer onOpen={() => choose('music')} />}
+          <ModuleHost id={shown} />
         </div>
       )}
     </div>

@@ -57,15 +57,71 @@ button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-
 .island[data-phase='pill'] { border-radius: var(--pill-radius); transition: background var(--motion); }
 .island[data-phase='pill']:hover { background: var(--surface); }
 
-/* ---------- Lapisan pill ---------- */
-.island__pill {
-  position: absolute; top: 0; left: 50%; width: var(--pw); height: var(--ph);
+/* ---------- Lapisan baris island ---------- */
+.island__bar {
+  position: absolute; top: 0; left: 0; right: 0; height: var(--ph);
   display: flex; align-items: center; justify-content: center;
-  transform: translateX(-50%);
-  transition: opacity 140ms ease, transform var(--morph);
+  transition: transform var(--morph);
 }
-.island[data-phase='open'] .island__pill { opacity: 0; pointer-events: none; transform: translateX(-50%) scale(0.94); }
-.island[data-phase='closing'] .island__pill { transition-delay: 110ms; }
+.island[data-phase='closing'] .island__bar { transform: translateY(-2px); }
+
+/* Deretan island modul. Ikon saja saat ciut; hover menandai modul yang dipratinjau. */
+.islebar {
+  position: relative; width: max-content; max-width: 100%;
+  display: flex; align-items: center; gap: 4px; padding: 0 6px;
+  height: var(--ph); white-space: nowrap;
+}
+.isle {
+  position: relative; flex: none; display: flex; align-items: center; justify-content: center;
+  height: 27px; min-width: 30px; padding: 0 7px;
+  border: var(--border-w) solid var(--border-c); border-radius: 99px;
+  background: var(--surface); color: var(--text-dim); font-size: 14px; line-height: 1;
+  cursor: pointer;
+  transition: background var(--motion), color var(--motion), border-color var(--motion), transform var(--motion);
+}
+.isle:hover { background: var(--surface-2); color: var(--text); }
+.isle:active { transform: scale(0.94); }
+.isle[data-shown] { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+.isle[aria-selected='true'] .isle__icon { font-weight: 700; }
+.isle[aria-selected='true']::after {
+  content: ''; position: absolute; left: 50%; bottom: -4px; width: 3px; height: 3px;
+  border-radius: 99px; background: var(--accent); transform: translateX(-50%);
+}
+.isle:focus-visible { outline-offset: 2px; }
+
+.isle--clock {
+  gap: 7px; padding: 0 11px; cursor: grab; color: var(--text);
+  background: var(--surface);
+}
+.isle--clock:active { cursor: grabbing; }
+.isle__time { font-weight: 650; font-size: 12.5px; letter-spacing: 0.01em; font-variant-numeric: tabular-nums; }
+.isle__dot {
+  position: relative; flex: none; width: 6px; height: 6px; border-radius: 99px;
+  background: var(--text-dim); opacity: 0.55;
+  transition: background var(--motion), opacity var(--motion), transform var(--motion);
+}
+.isle--clock:hover .isle__dot { opacity: 1; background: var(--accent); transform: scale(1.25); }
+.isle__dot.is-live { background: var(--accent-2); opacity: 1; }
+.isle__dot.is-live::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; background: var(--accent-2);
+  animation: pulse 1.8s ease-out infinite;
+}
+.isle__eq { display: flex; align-items: flex-end; gap: 2px; height: 10px; flex: none; }
+.isle__eq i {
+  width: 2px; height: 100%; border-radius: 1px; background: var(--accent-2);
+  transform-origin: bottom; animation: eq 900ms ease-in-out infinite;
+}
+.isle__eq i:nth-child(2) { animation-delay: 140ms; }
+.isle__eq i:nth-child(3) { animation-delay: 280ms; }
+.isle__eq i:nth-child(4) { animation-delay: 420ms; }
+.isle__eq:not([data-playing]) i { animation-play-state: paused; transform: scaleY(0.3); opacity: 0.7; }
+.isle__icon { display: grid; place-items: center; width: 16px; height: 16px; }
+.isle__badge {
+  position: absolute; top: 3px; right: 3px; width: 5px; height: 5px; border-radius: 99px;
+  background: var(--accent-2); box-shadow: 0 0 0 2px var(--surface);
+}
+.isle[data-shown] .isle__badge { box-shadow: 0 0 0 2px var(--accent-soft); }
+.islebar__fade { display: none; }
 
 .pill {
   flex: none; width: max-content; height: var(--ph);
@@ -196,9 +252,14 @@ button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-
 
 /* ---------- Lapisan panel ---------- */
 .island__panel {
-  position: absolute; inset: 0; min-height: 0;
+  position: absolute; top: calc(var(--ph) + 2px); left: 8px; right: 8px; bottom: 8px;
+  min-height: 0; min-width: 0; overflow: hidden;
   display: flex; flex-direction: column;
-  opacity: 0; transform: translateY(-10px) scale(0.98); transform-origin: top center;
+  background: var(--surface);
+  border: var(--border-w) solid var(--border-c);
+  border-radius: calc(var(--radius) * 0.9);
+  box-shadow: var(--shadow);
+  opacity: 0; transform: translateY(-8px) scale(0.98); transform-origin: top center;
   pointer-events: none;
   transition: opacity 180ms ease, transform var(--morph);
 }

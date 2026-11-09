@@ -17,13 +17,13 @@ const SETTLE_MS: u64 = 140;
 const SNAP_ANIM_MS: u64 = 140;
 const FRAME_MS: u64 = 16;
 
-/// Pill (Dynamic-Island style): tinggi tetap, lebar MENGIKUTI isi (diukur di UI) agar tidak makan tempat.
+/// Baris island modul: tinggi tetap, lebar MENGIKUTI isi (diukur di UI) agar tidak makan tempat.
 pub const PILL_H_DIP: f64 = 36.0;
-pub const PILL_W_MIN_DIP: u32 = 112;
-pub const PILL_W_MAX_DIP: u32 = 340;
-pub const EXPANDED_DIP: (f64, f64) = (420.0, 520.0);
-/// Lebar pill terakhir yang dilaporkan UI (DIP). Bertahan selama proses hidup, termasuk Deep Sleep.
-static PILL_W_DIP: AtomicU32 = AtomicU32::new(200);
+pub const PILL_W_MIN_DIP: u32 = 160;
+pub const PILL_W_MAX_DIP: u32 = 900;
+pub const EXPANDED_DIP: (f64, f64) = (560.0, 590.0);
+/// Lebar baris island terakhir yang dilaporkan UI (DIP). Bertahan selama proses hidup, termasuk Deep Sleep.
+static PILL_W_DIP: AtomicU32 = AtomicU32::new(470);
 
 /// true selama gerakan berasal dari kode kita sendiri (agar tidak memicu snap lagi).
 static PROGRAMMATIC: AtomicBool = AtomicBool::new(false);

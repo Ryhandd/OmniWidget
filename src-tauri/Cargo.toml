@@ -72,7 +72,10 @@ windows = { version = "0.62", features = [
   "Win32_Media_Audio",
   "Win32_Media_Audio_Endpoints",
   "Win32_System_Com",
+  "Win32_System_Ole",
+  "Win32_System_Variant",
   "Win32_System_WinRT",
+  "Win32_System_Wmi",
 ] }
 [target.'cfg(target_os = "macos")'.dependencies]
 keyring = { version = "3", features = ["apple-native"] }
