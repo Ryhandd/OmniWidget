@@ -1,7 +1,9 @@
 /* Modul Musik: pemutar penuh untuk sesi media Windows (Spotify Free tetap bekerja). */
 .mus {
   display: flex; flex-direction: column; gap: 10px;
-  padding: 12px 14px 18px; min-width: 0;
+  padding: 12px 14px 22px; min-width: 0; width: 100%; max-width: 100%;
+  /* Konten tidak boleh melebar lalu membuat panel bisa digeser horizontal. */
+  overflow-x: clip;
 }
 
 .mus__notice {
@@ -40,10 +42,10 @@
 .mus__album { font-size: 11.5px; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ---------- Progress ---------- */
-.mus__seek { display: grid; grid-template-columns: 34px 1fr 34px; align-items: center; gap: 7px; }
+.mus__seek { display: grid; grid-template-columns: 34px minmax(0, 1fr) 34px; align-items: center; gap: 7px; min-width: 0; }
 .mus__time { font-size: 10.5px; color: var(--text-dim); font-variant-numeric: tabular-nums; text-align: center; }
 .mus__range {
-  -webkit-appearance: none; appearance: none; width: 100%; height: 18px;
+  -webkit-appearance: none; appearance: none; width: 100%; min-width: 0; height: 18px;
   margin: 0; background: transparent; cursor: pointer;
 }
 .mus__range::-webkit-slider-runnable-track {
@@ -127,8 +129,12 @@
 .mus__tab[aria-selected='true'] .mus__count { background: var(--accent); color: var(--accent-text); }
 
 /* ---------- Daftar ---------- */
-.mus__list { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.mus__list--empty { padding: 14px 6px; text-align: center; color: var(--text-dim); font-size: 11.5px; }
+.mus__list {
+  display: flex; flex-direction: column; gap: 6px; min-width: 0; width: 100%;
+  padding: 8px; background: var(--surface);
+  border: var(--border-w) solid var(--border-c); border-radius: calc(var(--radius) * 0.75);
+}
+.mus__list--empty { padding: 16px 10px; text-align: center; color: var(--text-dim); font-size: 11.5px; }
 .mus__list--empty p { margin: 0; line-height: 1.5; }
 .mus__listhead {
   display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
@@ -142,7 +148,7 @@
 .mus__link:hover { color: var(--accent); }
 .mus__rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
 .mus__row {
-  flex: 1; min-width: 0; display: flex; align-items: center; gap: 9px; padding: 6px 7px;
+  flex: 1; width: 100%; min-width: 0; display: flex; align-items: center; gap: 9px; padding: 6px 7px;
   border: 0; border-radius: calc(var(--radius) * 0.5); background: transparent; color: var(--text);
   text-align: left; cursor: pointer;
   transition: background var(--motion);
@@ -171,9 +177,10 @@
 .mus__del svg { width: 13px; height: 13px; }
 
 /* ---------- Tambah playlist ---------- */
-.mus__add { display: flex; flex-direction: column; gap: 6px; }
-.mus__addrow { display: flex; gap: 6px; align-items: center; }
-.mus__addrow .field { flex: 1; min-width: 0; }
+.mus__add { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.mus__add .field { width: 100%; min-width: 0; }
+.mus__addrow { display: flex; gap: 6px; align-items: center; min-width: 0; }
+.mus__addrow .field { flex: 1 1 0; width: auto; min-width: 0; }
 .mus__addbtn {
   flex: none; display: grid; place-items: center; width: 32px; height: 32px; padding: 0;
   border: var(--border-w) solid var(--border-c); border-radius: calc(var(--radius) * 0.6);
@@ -185,7 +192,8 @@
 .mus__addbtn svg { width: 15px; height: 15px; }
 .mus__field--bad { border-color: var(--danger); }
 .mus__fine { margin: 0; font-size: 10.5px; }
-.mus__hint { margin: 0; padding: 2px; font-size: 11px; line-height: 1.55; color: var(--text-dim); }
+.mus__hint { margin: 0; padding: 2px 3px 4px; font-size: 11px; line-height: 1.55; color: var(--text-dim); }
+.mus__plrow > .mus__row { width: auto; }
 
 /* ---------- Kosong ---------- */
 .mus--empty { min-height: 100%; justify-content: center; }
