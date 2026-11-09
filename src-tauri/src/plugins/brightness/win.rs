@@ -17,6 +17,9 @@ fn err<E: std::fmt::Display>(e: E) -> String {
     format!("Brightness: {e}")
 }
 
+const UNSUPPORTED: &str =
+    "Monitor ini tidak mendukung pengaturan brightness lewat Windows (umumnya monitor eksternal)";
+
 /// Jaga keseimbangan CoInitializeEx/CoUninitialize. Bila thread sudah punya apartment lain,
 /// `CoInitializeEx` gagal dan kita tidak boleh memanggil `CoUninitialize`.
 struct Com(bool);
@@ -79,9 +82,17 @@ fn first(svc: &ISWbemServices, wql: &str) -> Result<Option<windows::Win32::Syste
 pub fn get() -> Result<Option<u8>, String> {
     let _com = com();
     let svc = services()?;
-    let Some(obj) = first(&svc, "SELECT CurrentBrightness FROM WmiMonitorBrightness")? else {
-        return Ok(None);
+    // Monitor eksternal sering membuat query ini gagal dengan 0x80004005 (WBEM_E_FAILED).
+    // Itu berarti "tidak tersedia", bukan error yang perlu ditampilkan ke pengguna.
+    let set = match query(&svc, "SELECT CurrentBrightness FROM WmiMonitorBrightness") {
+        Ok(set) => set,
+        Err(_) => return Ok(None),
     };
+    let count = unsafe { set.Count() }.map_err(err)?;
+    if count <= 0 {
+        return Ok(None);
+    }
+    let obj = unsafe { set.ItemIndex(0) }.map_err(err)?;
     let props = unsafe { obj.Properties_() }.map_err(err)?;
     let prop = unsafe { props.Item(&BSTR::from("CurrentBrightness"), 0) }.map_err(err)?;
     let value = unsafe { prop.Value() }.map_err(err)?;
@@ -101,8 +112,8 @@ fn variant_i4(value: i32) -> VARIANT {
 pub fn set(level: u8) -> Result<(), String> {
     let _com = com();
     let svc = services()?;
-    let Some(obj) = first(&svc, "SELECT * FROM WmiMonitorBrightnessMethods")? else {
-        return Err("Monitor ini tidak mendukung pengaturan brightness lewat Windows (umumnya monitor eksternal)".into());
+    let Some(obj) = first(&svc, "SELECT * FROM WmiMonitorBrightnessMethods").map_err(|_| UNSUPPORTED.to_string())? else {
+        return Err(UNSUPPORTED.into());
     };
     let dispatch: IDispatch = obj.cast().map_err(err)?;
     let level = level.min(100) as i32;

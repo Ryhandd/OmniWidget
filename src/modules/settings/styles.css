@@ -1,4 +1,10 @@
-.set { padding: 14px; display: flex; flex-direction: column; gap: 16px; }
+.set { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.set > section {
+  padding: 12px;
+  background: var(--surface-2);
+  border: var(--border-w) solid var(--border-c);
+  border-radius: calc(var(--radius) * 0.75);
+}
 .set h4 { margin: 0 0 8px; font-size: 13px; }
 .set__row { display: flex; align-items: center; gap: 8px; }
 .set__row > .grow { flex: 1; min-width: 0; }

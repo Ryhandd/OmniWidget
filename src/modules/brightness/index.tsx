@@ -64,7 +64,7 @@ export default function BrightnessModule() {
             Monitor ini tidak menyediakan pengaturan kecerahan lewat Windows (umumnya monitor eksternal).
             Coba gunakan tombol fisik monitor, atau atur dari menu OSD perangkat.
           </p>
-          {err && <div class="err bri__err">{err}</div>}
+          {err && !/0x80004005/i.test(err) && <div class="err bri__err">{err}</div>}
         </div>
       </div>
     );

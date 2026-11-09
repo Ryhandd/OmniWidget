@@ -27,6 +27,7 @@ input, select, textarea { user-select: text; -webkit-user-select: text; }
 }
 
 button, select, input, textarea { font: inherit; color: inherit; }
+input[type='checkbox'], input[type='radio'], input[type='range'], progress { accent-color: var(--accent); }
 button { cursor: pointer; }
 button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible {
   outline: 2px solid var(--accent); outline-offset: 1px;
@@ -255,10 +256,12 @@ button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-
   position: absolute; top: calc(var(--ph) + 2px); left: 8px; right: 8px; bottom: 8px;
   min-height: 0; min-width: 0; overflow: hidden;
   display: flex; flex-direction: column;
-  background: var(--surface);
+  background: var(--bg);
   border: var(--border-w) solid var(--border-c);
   border-radius: calc(var(--radius) * 0.9);
   box-shadow: var(--shadow);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
   opacity: 0; transform: translateY(-8px) scale(0.98); transform-origin: top center;
   pointer-events: none;
   transition: opacity 180ms ease, transform var(--morph);
@@ -325,7 +328,6 @@ button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-
 .host {
   flex: 1 1 auto; min-height: 0; min-width: 0;
   overflow-y: auto; overflow-x: hidden;
-  border-top: var(--border-w) solid var(--border-c);
 }
 .host__view {
   height: 100%; min-width: 0; max-width: 100%;
