@@ -587,4 +587,78 @@ const test = (name, fn) => { fn(); passed++; console.log('  ok  ' + name); };
   });
 }
 
+// ---------------- Musik: now-playing, riwayat, tautan Spotify ----------------
+{
+  const M = await load('src/modules/music/logic.ts');
+
+  test('musik: fmtTime menit/detik dan jam', () => {
+    assert.equal(M.fmtTime(0), '0:00');
+    assert.equal(M.fmtTime(5_000), '0:05');
+    assert.equal(M.fmtTime(65_000), '1:05');
+    assert.equal(M.fmtTime(3_661_000), '1:01:01');
+    assert.equal(M.fmtTime(-5), '0:00');
+    assert.equal(M.fmtTime(NaN), '0:00');
+  });
+
+  test('musik: posisi berjalan hanya saat playing dan dijepit durasi', () => {
+    assert.equal(M.interpolatePosition(10_000, true, 1_000, 4_000, 100_000), 13_000);
+    assert.equal(M.interpolatePosition(10_000, false, 1_000, 9_999, 100_000), 10_000);
+    assert.equal(M.interpolatePosition(99_000, true, 0, 50_000, 100_000), 100_000, 'tidak melewati durasi');
+    assert.equal(M.interpolatePosition(0, true, 0, 5_000, 0), 5_000, 'durasi tak diketahui tetap maju');
+    assert.equal(M.progressPct(25, 100), 25);
+    assert.equal(M.progressPct(50, 0), 0);
+  });
+
+  test('musik: siklus ulangi off -> antrean -> lagu -> off', () => {
+    assert.equal(M.nextRepeat('off'), 'list');
+    assert.equal(M.nextRepeat('list'), 'track');
+    assert.equal(M.nextRepeat('track'), 'off');
+    assert.match(M.repeatLabel('track'), /lagu/i);
+  });
+
+  test('musik: tautan Spotify diterima dalam bentuk URI maupun URL share', () => {
+    const id = '37i9dQZF1DXcBWIGoYBM5M';
+    assert.equal(M.parseSpotifyLink(`spotify:playlist:${id}`), `spotify:playlist:${id}`);
+    assert.equal(M.parseSpotifyLink(`https://open.spotify.com/playlist/${id}?si=abc123`), `spotify:playlist:${id}`);
+    assert.equal(M.parseSpotifyLink(`https://open.spotify.com/track/${id}/`), `spotify:track:${id}`);
+    assert.equal(M.parseSpotifyLink('spotify:collection'), 'spotify:collection');
+    assert.equal(M.parseSpotifyLink('https://open.spotify.com.evil.io/playlist/x'), null, 'host palsu ditolak');
+    assert.equal(M.parseSpotifyLink('spotify:playlist:../x'), null, 'id aneh ditolak');
+    assert.equal(M.parseSpotifyLink('https://example.com/playlist/x'), null);
+    assert.equal(M.parseSpotifyLink('halo'), null);
+  });
+
+  test('musik: pencarian & appLabel', () => {
+    assert.equal(M.searchUri('Ruang Sendiri'), 'spotify:search:Ruang%20Sendiri');
+    assert.equal(M.songSearchUri({ title: 'Lagu', artist: 'Artis', album: '', app: '' }), 'spotify:search:Lagu%20Artis');
+    assert.equal(M.appLabel('SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify'), 'Spotify');
+    assert.equal(M.appLabel('MSEdge'), 'Microsoft Edge');
+    assert.equal(M.appLabel(''), 'Media');
+  });
+
+  test('musik: riwayat dedup, filter iklan, dan batas', () => {
+    const a = { title: 'Lagu A', artist: 'X', album: 'Al', app: 'a' };
+    const b = { title: 'Lagu B', artist: 'Y', album: 'Al', app: 'a' };
+    let h = M.pushHistory([], a, 1);
+    h = M.pushHistory(h, b, 2);
+    h = M.pushHistory(h, a, 3);
+    assert.deepEqual(h.map((x) => x.title), ['Lagu A', 'Lagu B'], 'lagu sama pindah ke atas, tanpa duplikat');
+    assert.equal(h[0].at, 3);
+    assert.deepEqual(M.pushHistory(h, { ...a, title: 'Advertisement' }, 4), h, 'iklan tidak masuk riwayat');
+    const many = Array.from({ length: 50 }, (_, i) => ({ ...a, title: `T${i}` }));
+    const limited = many.reduce((acc, t, i) => M.pushHistory(acc, t, i, 5), []);
+    assert.equal(limited.length, 5, 'dibatasi limit');
+    assert.equal(limited[0].title, 'T49', 'terbaru di atas');
+  });
+
+  test('musik: parser penyimpanan tahan data rusak', () => {
+    assert.deepEqual(M.parseHistory(null), []);
+    assert.deepEqual(M.parseHistory('{'), []);
+    assert.deepEqual(M.parseHistory('{"x":1}'), []);
+    assert.equal(M.parseHistory(JSON.stringify([{ title: 'a', artist: 'b', album: '', app: '', at: 1 }])).length, 1);
+    assert.deepEqual(M.parsePlaylists('nope'), []);
+    assert.equal(M.parsePlaylists(JSON.stringify([{ id: 'i', name: 'n', uri: 'spotify:playlist:x' }])).length, 1);
+  });
+}
+
 console.log(`modul: ${passed} tes lolos`);

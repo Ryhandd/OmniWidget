@@ -24,6 +24,21 @@ use windows::Win32::Media::Audio::{
 use windows::Win32::System::Com::{CoCreateInstance, CLSCTX_ALL};
 use windows::Win32::System::WinRT::{RoInitialize, RO_INIT_MULTITHREADED};
 
+/// Tunggu `IAsyncOperation<bool>` tanpa menyebut tipe masa depannya (crate windows-future tidak
+/// diimpor langsung). Makro dipakai di dalam fungsi async, jadi `.await` tetap valid.
+macro_rules! finish {
+    ($op:expr) => {{
+        match $op {
+            Ok(op) => match op.await {
+                Ok(true) => Ok(()),
+                Ok(false) => Err("Spotify tidak mengeksekusi perintah itu saat ini".to_string()),
+                Err(e) => Err(format!("Perintah gagal: {e}")),
+            },
+            Err(e) => Err(format!("Spotify menolak perintah: {e}")),
+        }
+    }};
+}
+
 /// Batas ukuran sampul yang mau diunduh (data URI membengkak ~33% saat base64).
 const MAX_ART_BYTES: u64 = 8 * 1024 * 1024;
 /// Jumlah sampul yang disimpan di memori pekerja (masing-masing puluhan–ratusan KB).
@@ -377,7 +392,7 @@ async fn control(
         "prev" => s.TrySkipPreviousAsync(),
         "shuffle" => {
             let on = value.and_then(|v| v.as_bool()).unwrap_or(false);
-            return ok(s.TryChangeShuffleActiveAsync(on)).await;
+            return finish!(s.TryChangeShuffleActiveAsync(on));
         }
         "repeat" => {
             let mode = match value.and_then(|v| v.as_str().map(str::to_string)) {
@@ -385,26 +400,19 @@ async fn control(
                 Some(m) if m == "list" => MediaPlaybackAutoRepeatMode::List,
                 _ => MediaPlaybackAutoRepeatMode::None,
             };
-            return ok(s.TryChangeAutoRepeatModeAsync(mode)).await;
+            return finish!(s.TryChangeAutoRepeatModeAsync(mode));
         }
         "seek" => {
             let ms = value.and_then(|v| v.as_f64()).unwrap_or(0.0).max(0.0) as i64;
             let ticks = ms.saturating_mul(10_000);
-            return ok(s.TryChangePlaybackPositionAsync(ticks)).await;
+            return finish!(s.TryChangePlaybackPositionAsync(ticks));
         }
         other => return Err(format!("Perintah tidak dikenal: {other}")),
     };
-    ok(op).await
+    finish!(op)
 }
 
-async fn ok(op: windows::core::Result<windows::future::IAsyncOperation<bool>>) -> Result<(), String> {
-    let op = op.map_err(|e| format!("Spotify menolak perintah: {e}"))?;
-    match op.await {
-        Ok(true) => Ok(()),
-        Ok(false) => Err("Spotify tidak mengeksekusi perintah itu saat ini".into()),
-        Err(e) => Err(format!("Perintah gagal: {e}")),
-    }
-}
+
 
 // ---------------------------------------------------------------- Volume (Core Audio)
 
@@ -458,7 +466,9 @@ unsafe fn endpoint_volume() -> Option<IAudioEndpointVolume> {
 }
 
 fn spotify_pid() -> Option<u32> {
-    let mut sys = sysinfo::System::new();
+    let Ok(mut sys) = sysinfo::System::new() else {
+        return None;
+    };
     sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
     sys.processes().iter().find_map(|(pid, p)| {
         let name = p.name().to_string_lossy().to_lowercase();
@@ -511,6 +521,8 @@ pub fn nowplaying_open_uri(uri: String) -> Result<(), String> {
         || uri.starts_with("spotify:album:")
         || uri.starts_with("spotify:track:")
         || uri.starts_with("spotify:artist:")
+        || uri.starts_with("spotify:episode:")
+        || uri.starts_with("spotify:show:")
         || uri.starts_with("spotify:search:")
         || uri.starts_with("spotify:collection")
         || uri.starts_with("https://open.spotify.com/");

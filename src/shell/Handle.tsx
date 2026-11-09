@@ -37,8 +37,8 @@ export function Pill({ live, measureRef, onChip }: PillProps) {
   const time = useClock(live);
   const items = useIndicators();
   const s = useNowPlaying();
-  const snap = s.snap;
-  const now = snap?.available && snap.title ? snap : null;
+  const current = s.snap;
+  const now = current?.available && current.title ? current : null;
 
   return (
     <div ref={measureRef} class="pill" data-tauri-drag-region onDblClick={snap} title={today()}>
