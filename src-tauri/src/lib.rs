@@ -81,6 +81,7 @@ pub fn run() {
             lifecycle::shell_activity,
             lifecycle::shell_get_state,
             lifecycle::shell_set_sleep_after,
+            lifecycle::shell_set_island_behavior,
             lifecycle::shell_deep_sleep,
             crate::plugins::converter::converter_probe,
             crate::plugins::converter::converter_start,

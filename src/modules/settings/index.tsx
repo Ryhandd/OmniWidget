@@ -10,10 +10,11 @@ export default function SettingsModule() {
   const [sleepMin, setSleepMin] = useState(5);
   const [sleepNote, setSleepNote] = useState('');
   const [autostart, setAutostart] = useState(false);
+  const [islandBehavior, setIslandBehavior] = useState<'auto' | 'hover'>(() => { try { return localStorage.getItem('omniwidget.island.behavior') === 'auto' ? 'auto' : 'hover'; } catch { return 'hover'; } });
 
   // Nilai awal berasal dari Rust (sumber kebenaran), bukan dari state lokal.
   useEffect(() => {
-    bridge.invoke<{ lockSnap: boolean; sleepAfterMin: number }>('shell_get_state')
+    bridge.invoke<{ lockSnap: boolean; sleepAfterMin: number; islandBehavior: string }>('shell_get_state')
       .then((s) => { setLock(s.lockSnap); setSleepMin(s.sleepAfterMin); })
       .catch(() => {});
     bridge.invoke<boolean>('app_autostart_get').then(setAutostart).catch(() => {});
@@ -25,6 +26,13 @@ export default function SettingsModule() {
   };
 
   const pickSleep = (m: number) => { setSleepMin(m); bridge.invoke('shell_set_sleep_after', { minutes: m }).catch(() => {}); };
+
+  const pickIslandBehavior = (v: 'auto' | 'hover') => {
+    setIslandBehavior(v);
+    try { localStorage.setItem('omniwidget.island.behavior', v); } catch { /* abaikan */ }
+    window.dispatchEvent(new CustomEvent('omni:island-behavior', { detail: v }));
+    bridge.invoke('shell_set_island_behavior', { behavior: v === 'auto' ? 'island_auto_open' : 'island_hover_only' }).catch(() => {});
+  };
 
   // Rust menolak tidur (false) selama konversi berjalan; WebView tetap hidup dan pengguna diberi tahu.
   const sleepNow = () => {
@@ -41,7 +49,7 @@ export default function SettingsModule() {
     <div class="set">
       <section>
         <h4>Tema</h4>
-        <select class="field" value={theme} onChange={(e) => pickTheme((e.target as HTMLSelectElement).value)}>
+        <select class="field" value={theme} onChange={(e) => pickTheme((e.target as HTMLSelectElement).value as 'auto' | 'hover')}>
           {Object.entries(THEMES).map(([id, t]) => <option key={id} value={id}>{t.name}</option>)}
         </select>
       </section>
@@ -80,6 +88,18 @@ export default function SettingsModule() {
         </div>
         {sleepNote && <div class="set__note err">{sleepNote}</div>}
         <div class="set__note muted">WebView dihancurkan; hanya tray dan hotkey yang aktif. Bangun lewat Ctrl+Alt+Space atau klik ikon tray.</div>
+      </section>
+
+      <section>
+        <h4>Tampilan island saat ciut</h4>
+        <label class="set__row">
+          <span class="grow">Mode tampilan</span>
+          <select class="field" style={{ width: 'auto' }} value={islandBehavior} onChange={(e) => pickIslandBehavior((e.target as HTMLSelectElement).value as 'auto' | 'hover')}>
+            <option value="hover">Hanya jam, menu muncul saat hover (default)</option>
+            <option value="auto">Semua menu selalu tampil</option>
+          </select>
+        </label>
+        <div class="set__note muted">Pengaturan ini berlaku saat widget ciut. Saat lagu diputar, island tetap menampilkan jam + lagu.</div>
       </section>
 
       <section>

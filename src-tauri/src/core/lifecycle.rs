@@ -140,6 +140,7 @@ pub struct ShellSnapshot {
     mode: &'static str,
     lock_snap: bool,
     sleep_after_min: u64,
+    island_behavior: String,
 }
 
 /// Ping aktivitas dari UI (sudah di-throttle di frontend). Hanya mengubah timestamp.
@@ -154,6 +155,7 @@ pub fn shell_get_state(state: State<'_, ShellState>) -> ShellSnapshot {
         mode: state.mode.lock().unwrap().as_str(),
         lock_snap: state.lock_snap(),
         sleep_after_min: state.sleep_after_secs.load(Ordering::Relaxed) / 60,
+        island_behavior: state.island_behavior(),
     }
 }
 
@@ -163,6 +165,16 @@ pub fn shell_set_sleep_after(state: State<'_, ShellState>, minutes: u64) {
     state.sleep_after_secs.store(minutes.min(24 * 60) * 60, Ordering::Relaxed);
     state.touch();
     state.wake_watcher();
+}
+
+/// Ubah perilaku pill saat widget ciut: `island_auto_open` atau `island_hover_only`.
+#[tauri::command]
+pub fn shell_set_island_behavior(state: State<'_, ShellState>, behavior: String) {
+    let v = behavior.as_str();
+    if v != ShellState::ISLAND_AUTO_OPEN && v != ShellState::ISLAND_HOVER_ONLY {
+        return; // abaikan nilai tidak dikenali
+    }
+    state.set_island_behavior(v);
 }
 
 /// Tidur manual dari UI. Mengembalikan `false` (dan tidak melakukan apa-apa) bila ada konversi/job

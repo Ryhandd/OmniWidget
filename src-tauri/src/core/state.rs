@@ -25,6 +25,8 @@ pub struct ShellState {
     holds: AtomicUsize,
     last_activity: Mutex<Instant>,
     watcher: Mutex<Option<Thread>>,
+    /// Mode tampilan pill saat ciut. Default = hover-only (cuma jam).
+    island_open_behavior: Mutex<String>,
 }
 
 impl ShellState {
@@ -38,6 +40,7 @@ impl ShellState {
             holds: AtomicUsize::new(0),
             last_activity: Mutex::new(Instant::now()),
             watcher: Mutex::new(None),
+            island_open_behavior: Mutex::new(Self::ISLAND_HOVER_ONLY.to_string()),
         }
     }
 
@@ -83,6 +86,21 @@ impl ShellState {
     pub fn lock_snap(&self) -> bool {
         self.lock_snap.load(Ordering::Relaxed)
     }
+
+    pub fn island_behavior(&self) -> String {
+        self.island_open_behavior.lock().unwrap().clone()
+    }
+
+    pub fn set_island_behavior(&self, v: &str) {
+        *self.island_open_behavior.lock().unwrap() = v.to_string();
+        self.touch();
+    }
+
+    /// Ambang perilaku pill saat widget ciut. `island_auto_open` = island langsung mekar semua
+    /// modul kapan saja tanpa perlu hover. `island_hover_only` (default) = cuma jam terlihat
+    /// sampai kursor ditaruh ke atas widget, baru island modul muncul.
+    pub const ISLAND_AUTO_OPEN: &str = "island_auto_open";
+    pub const ISLAND_HOVER_ONLY: &str = "island_hover_only";
 }
 
 /// Tahanan Deep Sleep berbasis RAII: selama objek ini hidup, widget tidak akan menghancurkan WebView.

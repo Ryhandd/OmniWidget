@@ -60,6 +60,14 @@ export function App() {
   /** Modul yang sedang dipratinjau lewat hover (belum disimpan). */
   const [preview, setPreview] = useState<string | null>(null);
 
+  /** Perilaku island saat widget ciut: hover-only (default) atau auto-open. */
+  const [islandBehavior, setIslandBehavior] = useState<'auto' | 'hover'>(() => (read('omniwidget.island.behavior') === 'auto' ? 'auto' : 'hover'));
+  useEffect(() => {
+    const on = (e: Event) => setIslandBehavior((e as CustomEvent<'auto' | 'hover'>).detail);
+    window.addEventListener('omni:island-behavior', on);
+    return () => window.removeEventListener('omni:island-behavior', on);
+  }, []);
+
   const [pinned, setPinned] = useState(read(PIN_KEY) === '1');
   const pinnedRef = useRef(pinned);
   pinnedRef.current = pinned;
@@ -174,8 +182,11 @@ export function App() {
     // Polling now-playing hidup di shell: pill tetap update walau panel ciut.
     startNowPlaying();
     // Rust sumber kebenaran mode (mis. WebView di-reload saat Expanded).
-    bridge.invoke<{ mode: string }>('shell_get_state')
-      .then((s) => { if (s.mode === 'expanded') setPhase('open'); })
+    bridge.invoke<{ mode: string; sleepAfterMin: number; islandBehavior: string }>('shell_get_state')
+      .then((s) => {
+        if (s.mode === 'expanded') setPhase('open');
+        if (s.islandBehavior === 'island_auto_open') setIslandBehavior('auto');
+      })
       .catch(() => {});
     document.documentElement.dataset.island = phaseRef.current;
 
@@ -284,6 +295,7 @@ export function App() {
           shown={shown}
           live
           compact={phase === 'pill'}
+          behavior={islandBehavior}
           measureRef={pillRef}
           onHover={hover}
           onSelect={choose}
