@@ -14,7 +14,7 @@ pub enum Format {
 /// yang perlu dipasang pengguna.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "lowercase")]
-pub enum Engine { Native, Audio, Doc, Pdfium }
+pub enum Engine { Native, Audio, Doc, Pdfium, LibreOffice }
 
 #[derive(Debug, Clone, Copy)]
 pub struct Route { pub from: Format, pub to: Format, pub engine: Engine }
@@ -47,12 +47,18 @@ pub fn routes() -> Vec<Route> {
         }
     }
     for (f, t) in [
-        (Docx, Md), (Docx, Html), (Docx, Txt), (Docx, Pdf),
+        (Docx, Md), (Docx, Html), (Docx, Txt),
         (Md, Docx), (Md, Html), (Md, Pdf),
         (Html, Md), (Html, Docx), (Html, Txt), (Html, Pdf),
     ] {
         v.push(Route { from: f, to: t, engine: Engine::Doc });
     }
+    // DOCX <-> PDF dan PDF -> DOCx butuh rendering layout yang akurat (tabel, spasi, paragraf).
+    // Native engine Doc hanya memegang teks; pakai LibreOffice headless jika tersedia, else fallback Doc.
+    v.push(Route { from: Docx, to: Pdf, engine: Engine::LibreOffice });
+    v.push(Route { from: Pdf, to: Docx, engine: Engine::LibreOffice });
+    v.push(Route { from: Docx, to: Pdf, engine: Engine::Doc });
+    v.push(Route { from: Pdf, to: Docx, engine: Engine::Doc });
     v.push(Route { from: Pdf, to: Png, engine: Engine::Pdfium });
     v.push(Route { from: Pdf, to: Jpg, engine: Engine::Pdfium });
     v.push(Route { from: Pdf, to: Txt, engine: Engine::Pdfium });
@@ -61,7 +67,8 @@ pub fn routes() -> Vec<Route> {
 }
 
 pub fn targets_for(from: Format) -> Vec<Route> { routes().into_iter().filter(|r| r.from == from).collect() }
-pub fn find(from: Format, to: Format) -> Option<Route> { routes().into_iter().find(|r| r.from == from && r.to == to) }
+pub fn routes_for(from: Format, to: Format) -> Vec<Route> { routes().into_iter().filter(|r| r.from == from && r.to == to).collect() }
+pub fn find(from: Format, to: Format) -> Option<Route> { routes_for(from, to).into_iter().next() }
 
 pub fn detect(path: &Path) -> Option<Format> {
     use Format::*;
@@ -129,13 +136,15 @@ mod tests {
 
     #[test]
     fn dokumen_bisa_menjadi_pdf() {
-        assert_eq!(find(Format::Docx, Format::Pdf).map(|r| r.engine), Some(Engine::Doc));
+        let e = find(Format::Docx, Format::Pdf).map(|r| r.engine);
+        assert!(e == Some(Engine::LibreOffice) || e == Some(Engine::Doc));
         assert!(find(Format::Md, Format::Pdf).is_some());
         assert!(find(Format::Html, Format::Pdf).is_some());
     }
 
     #[test]
     fn pdf_bisa_menjadi_docx() {
-        assert_eq!(find(Format::Pdf, Format::Docx).map(|r| r.engine), Some(Engine::Pdfium));
+        let e = find(Format::Pdf, Format::Docx).map(|r| r.engine);
+        assert!(e == Some(Engine::LibreOffice) || e == Some(Engine::Doc));
     }
 }

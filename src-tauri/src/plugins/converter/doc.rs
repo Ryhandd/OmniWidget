@@ -7,7 +7,7 @@
 use super::{error::ConvError, formats::Format, CancelToken};
 use ego_tree::NodeRef;
 use scraper::{Html, Node};
-use std::{io::Read, path::Path, sync::atomic::Ordering};
+use std::{io::Read, path::Path, process::Command, sync::atomic::Ordering};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Block {
@@ -972,6 +972,48 @@ fn attr_value(event: &quick_xml::events::BytesStart<'_>, name: &[u8]) -> Option<
         }
     }
     None
+}
+
+/// Konversi dokumen lewat LibreOffice headless agar tata letak asli (tabel, jarak paragraf,
+/// enter, spasi) ikut terpertahankan. `to` harus `Format::Pdf` atau `Format::Docx`.
+pub fn convert_with_libreoffice(input: &Path, output: &Path, to: Format) -> Result<(), ConvError> {
+    use std::process::Command;
+    let target = match to {
+        Format::Pdf => "pdf:writer_pdf_Export",
+        Format::Docx => "docx:MS Word 2007 XML",
+        _ => return Err(ConvError::Doc("Target tidak didukung oleh LibreOffice".into())),
+    };
+    let out_dir = output
+        .parent()
+        .ok_or_else(|| ConvError::Doc("Folder output tidak valid".into()))?;
+    let stem = input
+        .file_stem()
+        .ok_or_else(|| ConvError::Doc("Nama berkas input tidak valid".into()))?;
+    let status = Command::new("soffice")
+        .args([
+            "--headless",
+            "--convert-to",
+            target,
+            "--outdir",
+            out_dir.to_str().unwrap_or(""),
+            input.to_str().unwrap_or(""),
+        ])
+        .status()
+        .map_err(|e| ConvError::LibreOfficeFailed(format!("Gagal menjalankan LibreOffice: {e}")))?;
+    if !status.success() {
+        return Err(ConvError::LibreOfficeFailed(
+            "LibreOffice mengembalikan status gagal".into(),
+        ));
+    }
+    let produced = out_dir.join(format!("{}.{}", stem.to_string_lossy(), to.ext()));
+    if produced.exists() {
+        std::fs::rename(&produced, output).map_err(|e| ConvError::Io(e.into()))?;
+    } else {
+        return Err(ConvError::LibreOfficeFailed(
+            "Berkas hasil LibreOffice tidak ditemukan".into(),
+        ));
+    }
+    Ok(())
 }
 
 #[cfg(test)]

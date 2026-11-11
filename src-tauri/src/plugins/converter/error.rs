@@ -24,6 +24,10 @@ pub enum ConvError {
     Audio(String),
     #[error("Dokumen: {0}")]
     Doc(String),
+    #[error("LibreOffice tidak ditemukan. Instal LibreOffice agar konversi DOCX <-> PDF mempertahankan format asli")]
+    LibreOfficeMissing,
+    #[error("LibreOffice gagal: {0}")]
+    LibreOfficeFailed(String),
     #[error("PDF memiliki {0} halaman (maks {1} untuk ekspor semua halaman). Pilih \"Halaman pertama\"")]
     TooManyPages(usize, usize),
     #[error("Halaman {0} berukuran {1:.0} x {2:.0} inci, terlalu besar untuk dirender dengan aman. Pilih \"Halaman pertama\" atau perkecil PDF-nya")]

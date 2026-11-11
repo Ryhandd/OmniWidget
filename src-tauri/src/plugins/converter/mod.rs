@@ -29,7 +29,7 @@ use tokio::sync::Semaphore;
 
 use crate::core::state::AwakeGuard;
 use error::ConvError;
-use formats::{Engine, Format};
+use formats::{Engine, Format, Route};
 use job::{JobHandle, JobRegistry, DEFAULT_CONCURRENCY};
 use output::{OutKind, PartGuard};
 
@@ -152,6 +152,38 @@ struct Plan {
     pdfium_dir: PathBuf,
 }
 
+/// Pilih rute terbaik yang tersedia untuk pasangan `from` -> `to`.
+/// DOCX <-> PDF dan PDF -> DOCx prioritas LibreOffice headless; jika tidak ada, fallback ke native Doc.
+fn pick_best_route(app: &AppHandle, from: Format, to: Format) -> Option<Route> {
+    let loffice_ok = libreoffice_ok();
+    for r in formats::routes_for(from, to) {
+        match r.engine {
+            Engine::LibreOffice if !loffice_ok => continue,
+            Engine::Pdfium if pdfium_dir(app).is_none() => continue,
+            _ => return Some(r),
+        }
+    }
+    None
+}
+
+/// Cek apakah `soffice` (LibreOffice headless) tersedia di PATH atau lokasi standar Windows.
+fn libreoffice_ok() -> bool {
+    if let Ok(which) = std::process::Command::new("where").arg("soffice").output() {
+        if which.status.success() && !which.stdout.is_empty() {
+            return true;
+        }
+    }
+    for cand in [
+        r"C:\Program Files\LibreOffice\program\soffice.exe",
+        r"C:\Program Files (x86)\LibreOffice\program\soffice.exe",
+    ] {
+        if std::path::Path::new(cand).is_file() {
+            return true;
+        }
+    }
+    false
+}
+
 impl Plan {
     fn build(app: &AppHandle, job: JobRequest) -> Result<Self, ConvError> {
         let input = PathBuf::from(&job.input_path);
@@ -159,13 +191,9 @@ impl Plan {
             return Err(ConvError::InputMissing(job.input_path));
         }
         let from = formats::detect(&input).ok_or(ConvError::UnknownFormat)?;
-        let route = formats::find(from, job.target_format).ok_or(ConvError::NoRoute)?;
-
-        if route.engine == Engine::Pdfium && pdfium_dir(app).is_none() {
-            return Err(ConvError::Pdf(
-                "Pustaka Pdfium tidak ditemukan. Pasang ulang aplikasi untuk memulihkannya".into(),
-            ));
-        }
+        // Pilih rute terbaik yang tersedia. DOCX<->PDF dan PDF->DOCx prioritas LibreOffice;
+        // jika tidak ada, fallback ke native Doc (format sederhana saja).
+        let route = pick_best_route(app, from, job.target_format).ok_or(ConvError::NoRoute)?;
 
         let out_dir = match job.output_dir.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
             Some(d) => PathBuf::from(d),
@@ -302,6 +330,10 @@ fn execute(
         }
         Engine::Doc => {
             doc::convert(&plan.input, &part, plan.from, plan.to, cancel, &progress)?;
+            OutKind::File
+        }
+        Engine::LibreOffice => {
+            doc::convert_with_libreoffice(&plan.input, &part, plan.to)?;
             OutKind::File
         }
         Engine::Pdfium => pdf::convert(&plan.input, &part, plan.to, plan.pages, &plan.pdfium_dir, cancel, &progress)?,
