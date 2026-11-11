@@ -99,12 +99,17 @@ pub async fn converter_probe(app: AppHandle, path: String) -> Result<ProbeResult
     }
     let source = formats::detect(p).ok_or(ConvError::UnknownFormat)?;
     let pdfium_ok = pdfium_dir(&app).is_some();
+    let loffice_ok = libreoffice_ok();
     let targets = formats::targets_for(source)
         .into_iter()
         .map(|r| TargetInfo {
             format: r.to,
             engine: r.engine,
-            available: r.engine != Engine::Pdfium || pdfium_ok,
+            available: match r.engine {
+                Engine::Pdfium => pdfium_ok,
+                Engine::LibreOffice => loffice_ok,
+                _ => true,
+            },
         })
         .collect();
     Ok(ProbeResult { source, targets })

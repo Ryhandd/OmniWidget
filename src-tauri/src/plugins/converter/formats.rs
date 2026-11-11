@@ -54,11 +54,10 @@ pub fn routes() -> Vec<Route> {
         v.push(Route { from: f, to: t, engine: Engine::Doc });
     }
     // DOCX <-> PDF dan PDF -> DOCx butuh rendering layout yang akurat (tabel, spasi, paragraf).
-    // Native engine Doc hanya memegang teks; pakai LibreOffice headless jika tersedia, else fallback Doc.
+    // Hanya LibreOffice headless yang tangani rute ini; native Doc engine hanya terima DOCX/Md/Html
+    // sebagai input, bukan PDF.
     v.push(Route { from: Docx, to: Pdf, engine: Engine::LibreOffice });
     v.push(Route { from: Pdf, to: Docx, engine: Engine::LibreOffice });
-    v.push(Route { from: Docx, to: Pdf, engine: Engine::Doc });
-    v.push(Route { from: Pdf, to: Docx, engine: Engine::Doc });
     v.push(Route { from: Pdf, to: Png, engine: Engine::Pdfium });
     v.push(Route { from: Pdf, to: Jpg, engine: Engine::Pdfium });
     v.push(Route { from: Pdf, to: Txt, engine: Engine::Pdfium });
