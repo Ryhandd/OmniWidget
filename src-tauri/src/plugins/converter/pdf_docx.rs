@@ -13,7 +13,7 @@ use super::{
 };
 use docx_rs::{
     AlignmentType, Docx, LineSpacing, LineSpacingType, PageMargin, Paragraph, Pic,
-    RelativeFromHorizontalType, RelativeFromVerticalType, Run, RunFonts, SpecialIndentType, Style,
+    RelativeFromHType, RelativeFromVType, Run, RunFonts, SpecialIndentType, Style,
     StyleType, Tab, TabValueType,
 };
 use pdfium_render::prelude::*;
@@ -168,8 +168,8 @@ fn floating(img: &PageImage, page_h: f32) -> Pic {
     Pic::new(&img.png)
         .size(emu(img.w), emu(img.h))
         .floating()
-        .relative_from_h(RelativeFromHorizontalType::Page)
-        .relative_from_v(RelativeFromVerticalType::Page)
+        .relative_from_h(RelativeFromHType::Page)
+        .relative_from_v(RelativeFromVType::Page)
         .offset_x((img.x * 12700.0).round() as i32)
         .offset_y(((page_h - img.top) * 12700.0).round() as i32)
 }
@@ -275,7 +275,7 @@ fn build_paragraph(para: &Para, before_pt: f32, ctx: &Ctx) -> Paragraph {
         LineSpacing::new()
             .before(tw(before_pt) as u32)
             .after(0)
-            .line(tw(para.pitch).max(20) as u32)
+            .line(tw(para.pitch).max(20))
             .line_rule(LineSpacingType::Exact),
     )
 }
@@ -331,8 +331,8 @@ fn extract_images(
         }
         let Some(image) = object.as_image_object() else { continue };
         let Ok(q) = object.bounds() else { continue };
-        let xs = [q.x1().value, q.x2().value, q.x3().value, q.x4().value];
-        let ys = [q.y1().value, q.y2().value, q.y3().value, q.y4().value];
+        let xs = [q.x1.value, q.x2.value, q.x3.value, q.x4.value];
+        let ys = [q.y1.value, q.y2.value, q.y3.value, q.y4.value];
         let x0 = xs.iter().cloned().fold(f32::MAX, f32::min);
         let x1 = xs.iter().cloned().fold(f32::MIN, f32::max);
         let y0 = ys.iter().cloned().fold(f32::MAX, f32::min);
