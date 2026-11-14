@@ -21,6 +21,6 @@ Push project ke GitHub → tab **Actions** → **Build Windows** → **Run workf
 
 ## Catatan
 - Installer belum ditandatangani (code signing berbayar), jadi SmartScreen bisa muncul: klik *More info → Run anyway*.
-- Semua fitur Converter (gambar, PDF, audio, dokumen) berjalan tanpa memasang komponen tambahan.
+- Semua fitur Converter (gambar, PDF, audio, dokumen, termasuk DOCX ↔ PDF) berjalan tanpa komponen tambahan. LibreOffice opsional: bila terpasang, DOCX → PDF otomatis memakainya untuk tata letak lebih akurat.
   Pustaka **Pdfium** ikut dipaketkan installer sebagai resource, jadi PDF → gambar/teks langsung bisa dipakai.
 - Autostart dimatikan default; nyalakan di **Pengaturan → Startup**.

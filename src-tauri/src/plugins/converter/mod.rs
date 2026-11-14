@@ -100,18 +100,23 @@ pub async fn converter_probe(app: AppHandle, path: String) -> Result<ProbeResult
     let source = formats::detect(p).ok_or(ConvError::UnknownFormat)?;
     let pdfium_ok = pdfium_dir(&app).is_some();
     let loffice_ok = libreoffice_ok();
-    let targets = formats::targets_for(source)
-        .into_iter()
-        .map(|r| TargetInfo {
-            format: r.to,
-            engine: r.engine,
-            available: match r.engine {
-                Engine::Pdfium => pdfium_ok,
-                Engine::LibreOffice => loffice_ok,
-                _ => true,
-            },
-        })
-        .collect();
+    let mut targets: Vec<TargetInfo> = Vec::new();
+    for r in formats::targets_for(source) {
+        let available = match r.engine {
+            Engine::Pdfium => pdfium_ok,
+            Engine::LibreOffice => loffice_ok,
+            _ => true,
+        };
+        // Satu entri per format target: engine tersedia pertama menang.
+        match targets.iter_mut().find(|t| t.format == r.to) {
+            Some(t) if !t.available && available => {
+                t.engine = r.engine;
+                t.available = true;
+            }
+            Some(_) => {}
+            None => targets.push(TargetInfo { format: r.to, engine: r.engine, available }),
+        }
+    }
     Ok(ProbeResult { source, targets })
 }
 
@@ -139,6 +144,21 @@ pub async fn converter_start(
     Ok(id)
 }
 
+/// Buka hasil konversi: berkas -> aplikasi bawaan; `reveal` -> folder yang memuatnya.
+#[tauri::command]
+pub async fn converter_open(path: String, reveal: bool) -> Result<(), ConvError> {
+    let p = PathBuf::from(&path);
+    if !p.exists() {
+        return Err(ConvError::InputMissing(path));
+    }
+    let target = if reveal && p.is_file() {
+        p.parent().map(Path::to_path_buf).unwrap_or(p)
+    } else {
+        p
+    };
+    open::that_detached(&target).map_err(|e| ConvError::Io(e))
+}
+
 #[tauri::command]
 pub async fn converter_cancel(app: AppHandle, job_id: String) -> Result<bool, String> {
     Ok(app.state::<JobRegistry>().cancel(&job_id))
@@ -158,7 +178,7 @@ struct Plan {
 }
 
 /// Pilih rute terbaik yang tersedia untuk pasangan `from` -> `to`.
-/// DOCX <-> PDF dan PDF -> DOCx prioritas LibreOffice headless; jika tidak ada, fallback ke native Doc.
+/// DOCX -> PDF memprioritaskan LibreOffice bila terpasang; jika tidak, engine Doc bawaan.
 fn pick_best_route(app: &AppHandle, from: Format, to: Format) -> Option<Route> {
     let loffice_ok = libreoffice_ok();
     for r in formats::routes_for(from, to) {
@@ -171,22 +191,9 @@ fn pick_best_route(app: &AppHandle, from: Format, to: Format) -> Option<Route> {
     None
 }
 
-/// Cek apakah `soffice` (LibreOffice headless) tersedia di PATH atau lokasi standar Windows.
+/// LibreOffice headless terpasang? Hasil dicache: tidak men-spawn proses tiap probe/job.
 fn libreoffice_ok() -> bool {
-    if let Ok(which) = std::process::Command::new("where").arg("soffice").output() {
-        if which.status.success() && !which.stdout.is_empty() {
-            return true;
-        }
-    }
-    for cand in [
-        r"C:\Program Files\LibreOffice\program\soffice.exe",
-        r"C:\Program Files (x86)\LibreOffice\program\soffice.exe",
-    ] {
-        if std::path::Path::new(cand).is_file() {
-            return true;
-        }
-    }
-    false
+    doc::soffice_path().is_some()
 }
 
 impl Plan {
@@ -196,8 +203,7 @@ impl Plan {
             return Err(ConvError::InputMissing(job.input_path));
         }
         let from = formats::detect(&input).ok_or(ConvError::UnknownFormat)?;
-        // Pilih rute terbaik yang tersedia. DOCX<->PDF dan PDF->DOCx prioritas LibreOffice;
-        // jika tidak ada, fallback ke native Doc (format sederhana saja).
+        // Pilih rute terbaik yang tersedia (lihat `pick_best_route`).
         let route = pick_best_route(app, from, job.target_format).ok_or(ConvError::NoRoute)?;
 
         let out_dir = match job.output_dir.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
@@ -338,7 +344,14 @@ fn execute(
             OutKind::File
         }
         Engine::LibreOffice => {
-            doc::convert_with_libreoffice(&plan.input, &part, plan.to)?;
+            // Gagal (profil terkunci, input rusak, dll) -> jatuh ke engine bawaan, bukan error mentah.
+            if doc::convert_with_libreoffice(&plan.input, &part, plan.to).is_err() {
+                let _ = std::fs::remove_file(&part);
+                if cancel.load(Ordering::SeqCst) {
+                    return Err(ConvError::Cancelled);
+                }
+                doc::convert(&plan.input, &part, plan.from, plan.to, cancel, &progress)?;
+            }
             OutKind::File
         }
         Engine::Pdfium => pdf::convert(&plan.input, &part, plan.to, plan.pages, &plan.pdfium_dir, cancel, &progress)?,

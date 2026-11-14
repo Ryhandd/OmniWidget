@@ -23,7 +23,8 @@
         "skipTaskbar": true,
         "resizable": false,
         "visible": false,
-        "shadow": false
+        "shadow": false,
+        "additionalBrowserArguments": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,Translate,OptimizationHints --disable-background-networking --disable-component-update --disable-gpu-shader-disk-cache --disable-breakpad --renderer-process-limit=1 --js-flags=--max-old-space-size=128"
       }
     ],
     "security": {

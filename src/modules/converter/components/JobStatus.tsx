@@ -1,4 +1,5 @@
 import { shortenMiddle } from '../paths';
+import { converterApi } from '../api';
 import type { State } from '../state';
 
 const label = (s: State): { text: string; tone: 'muted' | 'err' | 'ok' } | null => {
@@ -21,6 +22,7 @@ export function JobStatus({ state }: { state: State }) {
       {showBar && (
         <div
           class="progress"
+          data-wait={state.phase === 'queued' || (state.phase === 'running' && state.progress === 0)}
           role="progressbar"
           aria-valuemin={0}
           aria-valuemax={100}
@@ -31,7 +33,19 @@ export function JobStatus({ state }: { state: State }) {
       )}
       {msg && <div class={msg.tone === 'err' ? 'err' : msg.tone === 'ok' ? 'conv__ok' : 'muted'}>{msg.text}</div>}
       {state.phase === 'done' && state.resultPath && (
-        <div class="conv__result" title={state.resultPath}>{shortenMiddle(state.resultPath, 56)}</div>
+        <>
+          <div class="conv__result" title={state.resultPath}>{shortenMiddle(state.resultPath, 56)}</div>
+          <div class="conv__result-actions">
+            <button type="button" class="btn" onClick={() => void converterApi.open(state.resultPath!, false).catch(() => {})}>
+              {state.resultIsFolder ? 'Buka folder' : 'Buka file'}
+            </button>
+            {!state.resultIsFolder && (
+              <button type="button" class="btn btn--ghost" onClick={() => void converterApi.open(state.resultPath!, true).catch(() => {})}>
+                Tampilkan folder
+              </button>
+            )}
+          </div>
+        </>
       )}
     </div>
   );

@@ -53,11 +53,10 @@ pub fn routes() -> Vec<Route> {
     ] {
         v.push(Route { from: f, to: t, engine: Engine::Doc });
     }
-    // DOCX <-> PDF dan PDF -> DOCx butuh rendering layout yang akurat (tabel, spasi, paragraf).
-    // Hanya LibreOffice headless yang tangani rute ini; native Doc engine hanya terima DOCX/Md/Html
-    // sebagai input, bukan PDF.
+    // DOCX -> PDF: LibreOffice (bila terpasang) memberi tata letak paling akurat; engine Doc bawaan
+    // selalu tersedia sebagai cadangan sehingga rute ini tidak pernah mati.
     v.push(Route { from: Docx, to: Pdf, engine: Engine::LibreOffice });
-    v.push(Route { from: Pdf, to: Docx, engine: Engine::LibreOffice });
+    v.push(Route { from: Docx, to: Pdf, engine: Engine::Doc });
     v.push(Route { from: Pdf, to: Png, engine: Engine::Pdfium });
     v.push(Route { from: Pdf, to: Jpg, engine: Engine::Pdfium });
     v.push(Route { from: Pdf, to: Txt, engine: Engine::Pdfium });
@@ -143,7 +142,6 @@ mod tests {
 
     #[test]
     fn pdf_bisa_menjadi_docx() {
-        let e = find(Format::Pdf, Format::Docx).map(|r| r.engine);
-        assert!(e == Some(Engine::LibreOffice) || e == Some(Engine::Doc));
+        assert_eq!(find(Format::Pdf, Format::Docx).map(|r| r.engine), Some(Engine::Pdfium));
     }
 }

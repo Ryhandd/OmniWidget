@@ -86,6 +86,7 @@ pub fn run() {
             crate::plugins::converter::converter_probe,
             crate::plugins::converter::converter_start,
             crate::plugins::converter::converter_cancel,
+            crate::plugins::converter::converter_open,
             crate::plugins::converter::staging::converter_stage_upload,
             crate::plugins::llm::llm_get_config,
             crate::plugins::llm::llm_set_config,

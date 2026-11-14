@@ -18,6 +18,9 @@ export const converterApi = {
   stage: (name: string, bytes: Uint8Array) =>
     bridge.invoke<string>('converter_stage_upload', bytes, { headers: { 'x-file-name': encodeURIComponent(name) } }),
 
+  /** reveal=true membuka folder yang memuat hasil; false membuka hasilnya. */
+  open: (path: string, reveal: boolean) => bridge.invoke<void>('converter_open', { path, reveal }),
+
   cancel: (jobId: string) => bridge.invoke<boolean>('converter_cancel', { jobId }),
 };
 

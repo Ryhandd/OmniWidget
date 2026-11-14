@@ -1,13 +1,30 @@
 .conv { padding: 14px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .conv__drop {
-  padding: 16px 12px; text-align: center; color: var(--text-dim);
-  background: var(--surface); border: var(--border-w) dashed var(--border-c); border-radius: var(--radius);
+  padding: 18px 14px; text-align: center; color: var(--text-dim);
+  background: var(--surface); border: var(--border-w) dashed var(--text-dim); border-radius: var(--radius);
   transition: background var(--motion), border-color var(--motion);
 }
 .conv__drop[data-over='true'] { background: var(--surface-2); border-color: var(--accent); color: var(--text); }
-.conv__file { color: var(--text); word-break: break-all; }
+.conv__file { display: flex; align-items: center; gap: 10px; text-align: left; color: var(--text); min-width: 0; }
+.conv__file-meta { min-width: 0; flex: 1; }
+.conv__file-name { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.conv__file-name strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conv__icon {
+  flex: none; width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.5;
+  stroke-linecap: round; stroke-linejoin: round; color: var(--text-dim);
+  transition: color var(--motion), transform var(--motion);
+}
+.conv__icon--file { width: 30px; height: 30px; color: var(--accent); }
+.conv__empty { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.conv__empty-title { color: var(--text); font-weight: 600; margin-top: 4px; }
+.conv__drop[data-over='true'] .conv__icon { color: var(--accent); transform: translateY(-2px); }
+.conv__result-actions { display: flex; gap: 8px; margin-top: 2px; }
+.progress[data-wait='true'] > i {
+  width: 40% !important; animation: conv-wait 1.1s ease-in-out infinite alternate;
+}
+@keyframes conv-wait { from { transform: translateX(-10%); } to { transform: translateX(150%); } }
 .conv__badge {
-  margin-left: 8px; padding: 1px 6px; font-size: 11px; font-weight: 700; vertical-align: middle;
+  flex: none; padding: 1px 6px; font-size: 11px; font-weight: 700; vertical-align: middle;
   color: var(--accent-text); background: var(--accent); border-radius: calc(var(--radius) / 3);
 }
 .conv__path { font-size: 12px; margin-top: 2px; }

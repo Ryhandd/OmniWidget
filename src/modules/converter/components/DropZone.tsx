@@ -17,6 +17,17 @@ type Props = {
   onBrowse: () => void;
 };
 
+const UploadIcon = () => (
+  <svg class="conv__icon" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" />
+  </svg>
+);
+const FileIcon = () => (
+  <svg class="conv__icon conv__icon--file" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5" />
+  </svg>
+);
+
 export function DropZone({ filePath, source, over, locked, staging, staged, notice, dropProps, onBrowse }: Props) {
   const name = filePath ? splitPath(filePath).base : '';
   const idle = locked || staging;
@@ -35,13 +46,19 @@ export function DropZone({ filePath, source, over, locked, staging, staged, noti
           <div>Menyiapkan file…</div>
         ) : filePath ? (
           <div class="conv__file" title={staged ? name : filePath}>
-            <strong>{name}</strong>
-            {source && <span class="conv__badge">{source.toUpperCase()}</span>}
-            <div class="muted conv__path">{staged ? 'Dari tempel/seret · disimpan sementara' : shortenMiddle(filePath, 52)}</div>
+            <FileIcon />
+            <div class="conv__file-meta">
+              <div class="conv__file-name">
+                <strong>{name}</strong>
+                {source && <span class="conv__badge">{source.toUpperCase()}</span>}
+              </div>
+              <div class="muted conv__path">{staged ? 'Dari tempel/seret · disimpan sementara' : shortenMiddle(filePath, 46)}</div>
+            </div>
           </div>
         ) : (
-          <div>
-            <div>Jatuhkan file di sini</div>
+          <div class="conv__empty">
+            <UploadIcon />
+            <div class="conv__empty-title">Jatuhkan file di sini</div>
             <div class="muted conv__hint">atau tempel dengan Ctrl+V</div>
           </div>
         )}

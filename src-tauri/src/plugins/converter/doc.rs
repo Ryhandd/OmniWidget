@@ -16,6 +16,7 @@ enum Block {
     Quote(String),
     Code(String),
     List { ordered: bool, items: Vec<String> },
+    Table(Vec<Vec<String>>),
 }
 
 pub fn convert(
@@ -467,6 +468,32 @@ fn blocks_to_markdown(blocks: &[Block]) -> String {
                 }
                 out.push('\n');
             }
+            Block::Table(rows) => {
+                let cols = rows.iter().map(Vec::len).max().unwrap_or(0);
+                if cols == 0 {
+                    continue;
+                }
+                let cell = |r: &Vec<String>, i: usize| {
+                    r.get(i).map(|c| c.replace('\n', " ").replace('|', "\\|")).unwrap_or_default()
+                };
+                for (ri, row) in rows.iter().enumerate() {
+                    out.push('|');
+                    for i in 0..cols {
+                        out.push(' ');
+                        out.push_str(&cell(row, i));
+                        out.push_str(" |");
+                    }
+                    out.push('\n');
+                    if ri == 0 {
+                        out.push('|');
+                        for _ in 0..cols {
+                            out.push_str(" --- |");
+                        }
+                        out.push('\n');
+                    }
+                }
+                out.push('\n');
+            }
         }
     }
     out.trim().to_string() + "\n"
@@ -492,6 +519,13 @@ fn blocks_to_text(blocks: &[Block]) -> String {
                         out.push_str("• ");
                     }
                     out.push_str(item);
+                    out.push('\n');
+                }
+                out.push('\n');
+            }
+            Block::Table(rows) => {
+                for row in rows {
+                    out.push_str(&row.join("\t"));
                     out.push('\n');
                 }
                 out.push('\n');
@@ -550,6 +584,28 @@ fn write_docx(blocks: &[Block], output: &Path) -> Result<(), ConvError> {
                     );
                 }
                 docx
+            }
+            Block::Table(rows) => {
+                use docx_rs::{Table, TableCell, TableRow};
+                let table_rows: Vec<TableRow> = rows
+                    .iter()
+                    .map(|row| {
+                        TableRow::new(
+                            row.iter()
+                                .map(|c| {
+                                    TableCell::new().add_paragraph(
+                                        Paragraph::new().add_run(Run::new().add_text(c.as_str())),
+                                    )
+                                })
+                                .collect(),
+                        )
+                    })
+                    .collect();
+                if table_rows.is_empty() {
+                    docx
+                } else {
+                    docx.add_table(Table::new(table_rows))
+                }
             }
         };
     }
@@ -763,6 +819,27 @@ fn write_pdf(blocks: &[Block], output: &Path, title: &str) -> Result<(), ConvErr
                 }
                 doc.push(elements::Break::new(0.6));
             }
+            Block::Table(rows) => {
+                let cols = rows.iter().map(Vec::len).max().unwrap_or(0);
+                if cols == 0 {
+                    continue;
+                }
+                let mut table = elements::TableLayout::new(vec![1; cols]);
+                table.set_cell_decorator(elements::FrameCellDecorator::new(true, true, false));
+                for row in rows {
+                    let mut r = table.row();
+                    for i in 0..cols {
+                        let text = row.get(i).cloned().unwrap_or_default();
+                        r = r.element(elements::PaddedElement::new(
+                            elements::Paragraph::new(StyledString::new(text, body_style)),
+                            Margins::vh(1, 2),
+                        ));
+                    }
+                    r.push().map_err(|e| ConvError::Doc(format!("Tabel PDF tidak valid: {e}")))?;
+                }
+                doc.push(table);
+                doc.push(elements::Break::new(0.8));
+            }
         }
     }
 
@@ -854,6 +931,11 @@ fn parse_docx_xml(xml: &str) -> Result<Vec<Block>, ConvError> {
     let mut in_text = false;
     let mut ordered: Option<bool> = None;
     let mut in_list_item = false;
+    // Tabel: sel berisi beberapa paragraf; tabel bersarang dibaca sebagai bagian sel terluar.
+    let mut table_depth = 0usize;
+    let mut rows: Vec<Vec<String>> = Vec::new();
+    let mut row: Vec<String> = Vec::new();
+    let mut cell = String::new();
 
     loop {
         match reader.read_event() {
@@ -875,6 +957,14 @@ fn parse_docx_xml(xml: &str) -> Result<Vec<Block>, ConvError> {
                 }
                 b"w:numPr" => in_list_item = true,
                 b"w:t" => in_text = true,
+                b"w:tbl" => {
+                    table_depth += 1;
+                    if table_depth == 1 {
+                        rows.clear();
+                    }
+                }
+                b"w:tr" if table_depth == 1 => row.clear(),
+                b"w:tc" if table_depth == 1 => cell.clear(),
                 b"w:tab" => text.push('\t'),
                 b"w:br" | b"w:cr" => text.push('\n'),
                 _ => {}
@@ -905,12 +995,32 @@ fn parse_docx_xml(xml: &str) -> Result<Vec<Block>, ConvError> {
                 b"w:t" => in_text = false,
                 b"w:p" => {
                     if in_paragraph {
-                        push_docx_paragraph(&mut blocks, text.trim(), heading, in_list_item, &mut ordered);
+                        if table_depth > 0 {
+                            let t = text.trim();
+                            if !t.is_empty() {
+                                if !cell.is_empty() {
+                                    cell.push('\n');
+                                }
+                                cell.push_str(t);
+                            }
+                        } else {
+                            push_docx_paragraph(&mut blocks, text.trim(), heading, in_list_item, &mut ordered);
+                        }
                     }
                     in_paragraph = false;
                     in_list_item = false;
                 }
-                b"w:tbl" => ordered = None,
+                b"w:tc" if table_depth == 1 => row.push(std::mem::take(&mut cell)),
+                b"w:tr" if table_depth == 1 => rows.push(std::mem::take(&mut row)),
+                b"w:tbl" => {
+                    table_depth = table_depth.saturating_sub(1);
+                    if table_depth == 0 {
+                        ordered = None;
+                        if !rows.is_empty() {
+                            blocks.push(Block::Table(std::mem::take(&mut rows)));
+                        }
+                    }
+                }
                 _ => {}
             },
             _ => {}
@@ -974,46 +1084,91 @@ fn attr_value(event: &quick_xml::events::BytesStart<'_>, name: &[u8]) -> Option<
     None
 }
 
-/// Konversi dokumen lewat LibreOffice headless agar tata letak asli (tabel, jarak paragraf,
-/// enter, spasi) ikut terpertahankan. `to` harus `Format::Pdf` atau `Format::Docx`.
+/// Lokasi `soffice` (PATH atau folder standar tiap OS). Dicari sekali lalu dicache.
+pub fn soffice_path() -> Option<std::path::PathBuf> {
+    use std::{path::PathBuf, sync::OnceLock};
+    static CACHE: OnceLock<Option<PathBuf>> = OnceLock::new();
+    CACHE
+        .get_or_init(|| {
+            let exe = if cfg!(windows) { "soffice.exe" } else { "soffice" };
+            let mut cands: Vec<PathBuf> = Vec::new();
+            if let Some(path) = std::env::var_os("PATH") {
+                cands.extend(std::env::split_paths(&path).map(|d| d.join(exe)));
+            }
+            if cfg!(windows) {
+                for var in ["ProgramFiles", "ProgramFiles(x86)"] {
+                    if let Some(base) = std::env::var_os(var) {
+                        cands.push(PathBuf::from(base).join("LibreOffice").join("program").join(exe));
+                    }
+                }
+                cands.push(PathBuf::from(r"C:\Program Files\LibreOffice\program\soffice.exe"));
+            } else if cfg!(target_os = "macos") {
+                cands.push(PathBuf::from("/Applications/LibreOffice.app/Contents/MacOS/soffice"));
+            } else {
+                cands.push(PathBuf::from("/usr/bin/soffice"));
+                cands.push(PathBuf::from("/opt/libreoffice/program/soffice"));
+            }
+            cands.into_iter().find(|p| p.is_file())
+        })
+        .clone()
+}
+
+/// DOCX -> PDF lewat LibreOffice headless agar tata letak asli (tabel, gambar, jarak) terjaga.
+/// Bekerja di folder sementara terpisah, jadi tidak pernah menimpa berkas milik pengguna.
 pub fn convert_with_libreoffice(input: &Path, output: &Path, to: Format) -> Result<(), ConvError> {
-    use std::process::Command;
-    let target = match to {
-        Format::Pdf => "pdf:writer_pdf_Export",
-        Format::Docx => "docx:MS Word 2007 XML",
-        _ => return Err(ConvError::Doc("Target tidak didukung oleh LibreOffice".into())),
-    };
-    let out_dir = output
-        .parent()
-        .ok_or_else(|| ConvError::Doc("Folder output tidak valid".into()))?;
+    if to != Format::Pdf {
+        return Err(ConvError::Doc("Target tidak didukung oleh LibreOffice".into()));
+    }
+    let soffice = soffice_path().ok_or(ConvError::LibreOfficeMissing)?;
     let stem = input
         .file_stem()
         .ok_or_else(|| ConvError::Doc("Nama berkas input tidak valid".into()))?;
-    let status = Command::new("soffice")
-        .args([
-            "--headless",
-            "--convert-to",
-            target,
-            "--outdir",
-            out_dir.to_str().unwrap_or(""),
-            input.to_str().unwrap_or(""),
-        ])
-        .status()
-        .map_err(|e| ConvError::LibreOfficeFailed(format!("Gagal menjalankan LibreOffice: {e}")))?;
-    if !status.success() {
-        return Err(ConvError::LibreOfficeFailed(
-            "LibreOffice mengembalikan status gagal".into(),
-        ));
-    }
-    let produced = out_dir.join(format!("{}.{}", stem.to_string_lossy(), to.ext()));
-    if produced.exists() {
-        std::fs::rename(&produced, output).map_err(|e| ConvError::Io(e.into()))?;
-    } else {
-        return Err(ConvError::LibreOfficeFailed(
-            "Berkas hasil LibreOffice tidak ditemukan".into(),
-        ));
-    }
-    Ok(())
+
+    let work = std::env::temp_dir().join(format!("omniwidget-lo-{}-{}", std::process::id(), nanos()));
+    std::fs::create_dir_all(&work)?;
+    let profile = work.join("profile");
+    let result = (|| -> Result<(), ConvError> {
+        let mut cmd = Command::new(&soffice);
+        cmd.arg("--headless")
+            .arg("--norestore")
+            .arg("--nolockcheck")
+            .arg(format!("-env:UserInstallation=file:///{}", profile.to_string_lossy().replace('\\', "/").trim_start_matches('/')))
+            .args(["--convert-to", "pdf:writer_pdf_Export", "--outdir"])
+            .arg(&work)
+            .arg(input)
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null());
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+        }
+        let status = cmd
+            .status()
+            .map_err(|e| ConvError::LibreOfficeFailed(format!("Gagal menjalankan LibreOffice: {e}")))?;
+        if !status.success() {
+            return Err(ConvError::LibreOfficeFailed("LibreOffice mengembalikan status gagal".into()));
+        }
+        let produced = work.join(format!("{}.pdf", stem.to_string_lossy()));
+        if !produced.is_file() {
+            return Err(ConvError::LibreOfficeFailed("Berkas hasil LibreOffice tidak ditemukan".into()));
+        }
+        // rename gagal lintas drive: salin lalu hapus.
+        if std::fs::rename(&produced, output).is_err() {
+            std::fs::copy(&produced, output)?;
+        }
+        Ok(())
+    })();
+    let _ = std::fs::remove_dir_all(&work);
+    result
+}
+
+fn nanos() -> u128 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0)
 }
 
 #[cfg(test)]
@@ -1147,6 +1302,24 @@ mod tests {
         } else {
             eprintln!("dilewati validasi pdfium: {} tidak ada", lib.display());
         }
+    }
+
+    #[test]
+    fn tabel_docx_bolak_balik_dan_ke_pdf() {
+        let dir = tempfile::tempdir().unwrap();
+        let docx = dir.path().join("tabel.docx");
+        let table = Block::Table(vec![
+            vec!["Nama".into(), "Nilai".into()],
+            vec!["A".into(), "1".into()],
+        ]);
+        write_docx(&[Block::Paragraph("Sebelum".into()), table.clone()], &docx).unwrap();
+        let back = read_docx(&docx).unwrap();
+        assert!(back.contains(&table), "hasil: {back:?}");
+
+        let cancel: CancelToken = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let pdf = dir.path().join("tabel.pdf");
+        convert(&docx, &pdf, Format::Docx, Format::Pdf, &cancel, &|_| {}).expect("tabel ke PDF");
+        assert!(std::fs::read(&pdf).unwrap().starts_with(b"%PDF"));
     }
 
     #[test]

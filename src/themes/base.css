@@ -275,8 +275,6 @@ button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-
   border: var(--border-w) solid var(--border-c);
   border-radius: calc(var(--radius) * 0.9);
   box-shadow: var(--shadow);
-  -webkit-backdrop-filter: blur(18px);
-  backdrop-filter: blur(18px);
   opacity: 0; transform: translateY(-8px) scale(0.98); transform-origin: top center;
   pointer-events: none;
   transition: opacity 180ms ease, transform var(--morph);
@@ -376,3 +374,14 @@ button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-
 .progress > i { display: block; height: 100%; background: var(--accent-2); border-radius: inherit; transition: width var(--motion); }
 .muted { color: var(--text-dim); }
 .err { color: var(--danger); }
+
+/* ---------- Polesan global ---------- */
+.btn { letter-spacing: 0.005em; box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08) inset; }
+.btn--ghost { box-shadow: none; }
+.dock__tab[aria-selected='true'] { text-shadow: none; }
+.ihead__icon { box-shadow: inset 0 0 0 1px var(--accent-soft); }
+.island__panel { background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 120px); }
+.progress { height: 5px; }
+.progress > i { background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width 200ms ease-out; }
+.host { scrollbar-gutter: stable; }
+:where(button, [role='tab'], [role='option']):focus-visible { outline-offset: 2px; border-radius: inherit; }
