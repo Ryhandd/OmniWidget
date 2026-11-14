@@ -3,7 +3,7 @@
 /** Nama format huruf kecil, mis. 'png', 'pdf', 'mp3'. Daftar valid ditentukan Rust (rute konversi). */
 export type Format = string;
 
-export type Engine = 'native' | 'audio' | 'doc' | 'pdfium';
+export type Engine = 'native' | 'audio' | 'doc' | 'pdfium' | 'libreoffice';
 
 export type TargetInfo = {
   format: Format;

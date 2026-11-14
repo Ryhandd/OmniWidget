@@ -70,16 +70,9 @@ pub fn convert(
             Ok(OutKind::File)
         }
         Format::Docx => {
-            // Teks tiap halaman diekstrak lewat Pdfium lalu ditulis sebagai DOCX terstruktur.
-            // Gambar dan tata letak visual PDF tidak ikut; hanya isi teks yang dipertahankan.
-            let mut pages = Vec::with_capacity(total);
-            for (i, page) in document.pages().iter().enumerate() {
-                if cancel.load(Ordering::Relaxed) { return Err(ConvError::Cancelled); }
-                let text = page.text().map(|t| t.all()).unwrap_or_default();
-                pages.push(text);
-                progress(0.05 + 0.85 * ((i + 1) as f32 / total as f32));
-            }
-            super::doc::write_text_docx(&pages, output)?;
+            // Tata letak asli (font, ukuran, rata, indentasi, jarak, gambar) direkonstruksi jadi
+            // paragraf DOCX yang bisa diedit; lihat `pdf_docx`.
+            super::pdf_docx::write(&document, output, cancel, progress)?;
             progress(1.0);
             Ok(OutKind::File)
         }

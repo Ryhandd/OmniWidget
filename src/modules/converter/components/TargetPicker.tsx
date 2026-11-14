@@ -86,6 +86,20 @@ export function TargetPicker(p: Props) {
         <div class="conv__hint err">Format ini tidak tersedia di perangkat ini.</div>
       )}
 
+      {current?.available && p.source === 'docx' && p.target === 'pdf' && current.engine === 'doc' && (
+        <div class="conv__hint err">
+          LibreOffice tidak terdeteksi: PDF hanya perkiraan, tabel, gambar, dan tata letak asli tidak ikut.
+          Pasang LibreOffice agar hasilnya sama dengan DOCX.
+        </div>
+      )}
+
+      {current?.available && p.source === 'pdf' && p.target === 'docx' && (
+        <div class="conv__hint muted">
+          Teks, gaya, jarak, dan gambar dipertahankan sebagai DOCX yang bisa diedit. Tabel dijaga posisinya, bukan
+          dibuat ulang sebagai tabel.
+        </div>
+      )}
+
       {showPages && p.pdfPages === 'all' && (
         <div class="conv__hint muted">Lebih dari satu halaman disimpan sebagai folder gambar.</div>
       )}
